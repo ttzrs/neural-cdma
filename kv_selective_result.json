@@ -1,0 +1,43 @@
+{
+  "model": "Qwen/Qwen2.5-0.5B",
+  "dataset": "Salesforce/wikitext/wikitext-2-raw-v1",
+  "n_context": 1024,
+  "m_eval": 256,
+  "n_passages": 8,
+  "dtype": "float32",
+  "codes": "dos c\u00f3digos aleatorios \u00b11 por kv-head/head_dim, compartidos entre capas y pares",
+  "positioning": "position_ids absolutos contin\u00faan desde N; cache_position usa slots compactos",
+  "full_cache_sanity_max_abs_nll_diff": 7.152557373046875e-07,
+  "methods": {
+    "FULL": {
+      "nll": 2.148524493384963,
+      "perplexity": 8.572200722361604,
+      "compression_ratio": 0.0,
+      "effective_context_x": 1.0
+    },
+    "CDMA-MERGE-EASY": {
+      "nll": 12.060489879722809,
+      "perplexity": 172903.6669109756,
+      "compression_ratio": 0.3330078125,
+      "effective_context_x": 1.499267935578331
+    },
+    "MEAN-MERGE-EASY": {
+      "nll": 2.2712590223029405,
+      "perplexity": 9.691595070386395,
+      "compression_ratio": 0.3330078125,
+      "effective_context_x": 1.499267935578331
+    },
+    "EVICT-EASY": {
+      "nll": 2.1812945565337163,
+      "perplexity": 8.857765718146014,
+      "compression_ratio": 0.3330078125,
+      "effective_context_x": 1.499267935578331
+    },
+    "CDMA-MERGE-RANDOM": {
+      "nll": 12.319981942924642,
+      "perplexity": 224130.09487126482,
+      "compression_ratio": 0.3330078125,
+      "effective_context_x": 1.499267935578331
+    }
+  }
+}

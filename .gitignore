@@ -1,0 +1,11 @@
+data/
+*.pt
+*.log
+__pycache__/
+*.png
+nohup.out
+*.egg-info/
+build/
+dist/
+HANDOFF.md
+PAPER_DRAFT.md

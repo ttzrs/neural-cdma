@@ -1,0 +1,61 @@
+{
+  "surprise_terciles": [
+    3.13,
+    7.57
+  ],
+  "by_K": {
+    "1": {
+      "acc_easy": 0.597,
+      "acc_mid": 0.013,
+      "acc_hard": 0.0,
+      "acc_all": 0.203
+    },
+    "2": {
+      "acc_easy": 0.506,
+      "acc_mid": 0.018,
+      "acc_hard": 0.0,
+      "acc_all": 0.175
+    },
+    "4": {
+      "acc_easy": 0.417,
+      "acc_mid": 0.028,
+      "acc_hard": 0.0,
+      "acc_all": 0.148
+    },
+    "8": {
+      "acc_easy": 0.265,
+      "acc_mid": 0.024,
+      "acc_hard": 0.0,
+      "acc_all": 0.096
+    }
+  },
+  "prior_only": {
+    "token": 279,
+    "acc_easy": 0.124,
+    "acc_mid": 0.008,
+    "acc_hard": 0.0,
+    "acc_all": 0.044
+  },
+  "retention_vs_K1": {
+    "1": {
+      "easy": 1.0,
+      "mid": 1.0,
+      "hard": null
+    },
+    "2": {
+      "easy": 0.848,
+      "mid": 1.385,
+      "hard": null
+    },
+    "4": {
+      "easy": 0.698,
+      "mid": 2.154,
+      "hard": null
+    },
+    "8": {
+      "easy": 0.444,
+      "mid": 1.846,
+      "hard": null
+    }
+  }
+}

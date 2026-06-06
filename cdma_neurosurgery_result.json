@@ -1,0 +1,127 @@
+{
+  "model": "Qwen/Qwen2.5-0.5B",
+  "baseline": {
+    "concept_accuracy": 0.4,
+    "unrelated_accuracy": 1.0,
+    "perplexity": 12.18
+  },
+  "ablation_sweep": {
+    "0.1": {
+      "k_neurons": 116,
+      "targeted": {
+        "concept": 0.0,
+        "unrelated": 1.0,
+        "ppl": 18.29
+      },
+      "random": {
+        "concept": 0.3619,
+        "unrelated": 1.0,
+        "ppl": 12.24
+      }
+    },
+    "0.5": {
+      "k_neurons": 583,
+      "targeted": {
+        "concept": 0.0,
+        "unrelated": 1.0,
+        "ppl": 24.23
+      },
+      "random": {
+        "concept": 0.4762,
+        "unrelated": 1.0,
+        "ppl": 12.37
+      }
+    },
+    "1.0": {
+      "k_neurons": 1167,
+      "targeted": {
+        "concept": 0.0,
+        "unrelated": 1.0,
+        "ppl": 28.77
+      },
+      "random": {
+        "concept": 0.5047,
+        "unrelated": 1.0,
+        "ppl": 12.77
+      }
+    },
+    "2.0": {
+      "k_neurons": 2334,
+      "targeted": {
+        "concept": 0.0,
+        "unrelated": 1.0,
+        "ppl": 34.7
+      },
+      "random": {
+        "concept": 0.5143,
+        "unrelated": 1.0,
+        "ppl": 13.17
+      }
+    },
+    "5.0": {
+      "k_neurons": 5836,
+      "targeted": {
+        "concept": 0.0,
+        "unrelated": 1.0,
+        "ppl": 44.56
+      },
+      "random": {
+        "concept": 0.4476,
+        "unrelated": 1.0,
+        "ppl": 15.73
+      }
+    }
+  },
+  "part2_cdma_multiplexed": {
+    "K": 4,
+    "concepts": [
+      "capital",
+      "chemistry",
+      "continent",
+      "antonym"
+    ],
+    "per_concept_overlap": {
+      "capital": {
+        "overlap_top100": 0.26,
+        "cosine": -0.1955
+      },
+      "chemistry": {
+        "overlap_top100": 0.34,
+        "cosine": -0.1273
+      },
+      "continent": {
+        "overlap_top100": 0.24,
+        "cosine": -0.1621
+      },
+      "antonym": {
+        "overlap_top100": 0.36,
+        "cosine": -0.1555
+      }
+    },
+    "avg_overlap_top100": 0.3,
+    "avg_cosine": -0.1601
+  },
+  "verdict": {
+    "ablation": "NOT-SURGICAL / CATASTROPHIC-PPL (concept drops to 0 but perplexity 18\u219245; targeted >> random on concept but ppl degrades)",
+    "cdma": "CDMA-NOT-SEPARABLE (overlap=0.300, cos=-0.160 \u2014 near-chance overlap, negative cosine)",
+    "is_surgical": false,
+    "cdma_separable": false,
+    "nuance": "Ablation IS concept-selective (control stays 1.0 throughout) but NOT capability-preserving (ppl 12->18 at k=0.1%). Targeted >> random on concept. True surgical = both. CDMA multiplexed maps show chance-level overlap vs serial maps: negative cosine indicates the combined scan actively inverts neuron rankings."
+  },
+  "diagnostics": {
+    "k_ref_pct": 1.0,
+    "concept_drop_targeted": 0.4,
+    "concept_drop_random": -0.1047,
+    "ppl_delta_targeted": 16.59,
+    "unrelated_delta_targeted": 0.0,
+    "top5_layers_by_score": [
+      23,
+      22,
+      20,
+      21,
+      19
+    ],
+    "total_mlp_neurons": 116736,
+    "note": "concept drops fully (0.4->0.0) at k=0.1% (116 neurons). Random ablation INCREASES concept score (0.4->0.51) \u2014 random noise may help some prompts. PPL increases monotonically with k for targeted, mildly for random."
+  }
+}

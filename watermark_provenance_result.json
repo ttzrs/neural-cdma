@@ -1,0 +1,134 @@
+{
+  "16": {
+    "0.01": {
+      "kl": 0.00035,
+      "token_agreement": 1.0,
+      "bitacc_residual": 0.9194,
+      "bitacc_logits": 0.5684,
+      "bitacc_control": 0.502
+    },
+    "0.02": {
+      "kl": 0.06077,
+      "token_agreement": 0.9766,
+      "bitacc_residual": 0.917,
+      "bitacc_logits": 0.5581,
+      "bitacc_control": 0.5034
+    },
+    "0.05": {
+      "kl": 1.18703,
+      "token_agreement": 0.8281,
+      "bitacc_residual": 0.8774,
+      "bitacc_logits": 0.5488,
+      "bitacc_control": 0.498
+    },
+    "0.1": {
+      "kl": 2.45799,
+      "token_agreement": 0.6484,
+      "bitacc_residual": 0.8262,
+      "bitacc_logits": 0.562,
+      "bitacc_control": 0.4966
+    },
+    "0.2": {
+      "kl": 3.95222,
+      "token_agreement": 0.4141,
+      "bitacc_residual": 0.7944,
+      "bitacc_logits": 0.5386,
+      "bitacc_control": 0.5039
+    },
+    "0.4": {
+      "kl": 5.92412,
+      "token_agreement": 0.1484,
+      "bitacc_residual": 0.8569,
+      "bitacc_logits": 0.5322,
+      "bitacc_control": 0.502
+    }
+  },
+  "64": {
+    "0.01": {
+      "kl": 0.00029,
+      "token_agreement": 0.9922,
+      "bitacc_residual": 0.7717,
+      "bitacc_logits": 0.548,
+      "bitacc_control": 0.4966
+    },
+    "0.02": {
+      "kl": 0.00117,
+      "token_agreement": 0.9922,
+      "bitacc_residual": 0.7704,
+      "bitacc_logits": 0.5459,
+      "bitacc_control": 0.4987
+    },
+    "0.05": {
+      "kl": 1.64037,
+      "token_agreement": 0.8203,
+      "bitacc_residual": 0.7308,
+      "bitacc_logits": 0.5331,
+      "bitacc_control": 0.4957
+    },
+    "0.1": {
+      "kl": 3.57792,
+      "token_agreement": 0.6094,
+      "bitacc_residual": 0.7002,
+      "bitacc_logits": 0.5289,
+      "bitacc_control": 0.4958
+    },
+    "0.2": {
+      "kl": 3.90638,
+      "token_agreement": 0.4375,
+      "bitacc_residual": 0.6914,
+      "bitacc_logits": 0.5305,
+      "bitacc_control": 0.4939
+    },
+    "0.4": {
+      "kl": 5.1021,
+      "token_agreement": 0.2734,
+      "bitacc_residual": 0.745,
+      "bitacc_logits": 0.5432,
+      "bitacc_control": 0.5028
+    }
+  },
+  "256": {
+    "0.01": {
+      "kl": 0.00032,
+      "token_agreement": 0.9922,
+      "bitacc_residual": 0.6435,
+      "bitacc_logits": 0.522,
+      "bitacc_control": 0.4977
+    },
+    "0.02": {
+      "kl": 0.43778,
+      "token_agreement": 0.9609,
+      "bitacc_residual": 0.6385,
+      "bitacc_logits": 0.5221,
+      "bitacc_control": 0.4981
+    },
+    "0.05": {
+      "kl": 0.73892,
+      "token_agreement": 0.8984,
+      "bitacc_residual": 0.6361,
+      "bitacc_logits": 0.5218,
+      "bitacc_control": 0.4973
+    },
+    "0.1": {
+      "kl": 1.48889,
+      "token_agreement": 0.7969,
+      "bitacc_residual": 0.6268,
+      "bitacc_logits": 0.5249,
+      "bitacc_control": 0.4977
+    },
+    "0.2": {
+      "kl": 4.44739,
+      "token_agreement": 0.3906,
+      "bitacc_residual": 0.5987,
+      "bitacc_logits": 0.5185,
+      "bitacc_control": 0.5001
+    },
+    "0.4": {
+      "kl": 5.4773,
+      "token_agreement": 0.2188,
+      "bitacc_residual": 0.6246,
+      "bitacc_logits": 0.5251,
+      "bitacc_control": 0.5013
+    }
+  }
+}
