@@ -1,7 +1,14 @@
 # Forensic Provenance for LLM Deployments: Real-Time Activation Watermarking for Legal Non-Repudiation
 
-*Working paper draft, 2026-06. All quantitative claims come from real runs on Qwen2.5-0.5B (RTX A5000),
-reproduced in this repository (`*_result.json`). System: `watermark_pkg/` (`cdma-watermark`).*
+<div class="authorblock">
+Jose Joaquín Vargas Altalaguerri<br>
+<code>jvargas8@xtec.cat</code> &nbsp;·&nbsp; Independent Researcher<br>
+June 2026
+</div>
+
+*Working paper draft. All quantitative claims come from real runs on Qwen2.5-0.5B (RTX A5000), reproduced in
+the repository [`ttzrs/neural-cdma`](https://github.com/ttzrs/neural-cdma) (`*_result.json`). System:
+`watermark_pkg/` (`cdma-watermark`). License: CC-BY-4.0 (paper), MIT (code).*
 
 ---
 
@@ -24,6 +31,14 @@ own logs) sound. We ship the system as an installable package with an honest thr
 the appendix, the capacity theory that bounds it: superposition lives in the linear channel and is destroyed
 by every untrained non-linear readout, and language's per-token demand collapses the multiplexing capacity to
 K≈2.
+
+**Contributions.** (1) A white-box forensic activation-watermarking system for LLM non-repudiation, with an
+attribution *and* an exculpatory mode and a binomial-test provenance guarantee (p = 1.5×10⁻⁵ at 16 bits, text
+unchanged), shipped as an installable package. (2) An applied **negative-results map** of where engineered CDMA
+superposition collapses on *off-the-shelf* pretrained models, across six applications and five distinct
+non-linear readouts. (3) The **surprise → multiplexability** finding and the language K_cap≈2 capacity collapse.
+**Critical limitation:** verification is white-box (the provider must log activations) and version-bound — forced
+by the non-linearity, not a design choice (§5).
 
 ---
 

@@ -14,7 +14,9 @@ body = markdown.markdown(md, extensions=["tables", "fenced_code", "toc", "sane_l
 CSS = """
 @page { size: A4; margin: 2.2cm 2.0cm; @bottom-center { content: counter(page); font: 9pt Georgia; color:#666; } }
 body { font: 10.5pt/1.45 Georgia, 'Times New Roman', serif; color:#111; }
-h1 { font-size: 18pt; line-height:1.2; margin: 0 0 .2em; }
+h1 { font-size: 18pt; line-height:1.25; margin: 0 0 .1em; text-align:center; }
+.authorblock { text-align:center; font-size:11pt; line-height:1.55; margin:.2em 0 1.1em; }
+.authorblock code { background:none; font-size:10pt; }
 h2 { font-size: 13pt; margin: 1.1em 0 .3em; border-bottom:1px solid #ccc; padding-bottom:2px; }
 h3 { font-size: 11pt; margin: .9em 0 .2em; }
 p, li { text-align: justify; }

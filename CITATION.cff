@@ -11,8 +11,10 @@ abstract: >-
   per-token demand collapses the multiplexing capacity to K≈2.
 type: software
 authors:
-  - given-names: "José"
-    family-names: "Vargas"
+  - given-names: "Jose Joaquín"
+    family-names: "Vargas Altalaguerri"
+    email: "jvargas8@xtec.cat"
+    affiliation: "Independent Researcher"
     alias: "ttzrs"
 repository-code: "https://github.com/ttzrs/neural-cdma"
 url: "https://github.com/ttzrs/neural-cdma"

@@ -96,7 +96,7 @@ tagged release; this README's DOI badge is updated once available.
 
 ```bibtex
 @software{vargas_neural_cdma_2026,
-  author  = {Vargas, Jos\'e},
+  author  = {Vargas Altalaguerri, Jose Joaqu\'in},
   title   = {neural-cdma: Engineered Superposition in Pretrained LLMs --- a forensic
              activation-watermark system and an empirical map of the non-linear wall},
   year    = {2026},
