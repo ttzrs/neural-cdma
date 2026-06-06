@@ -1,5 +1,11 @@
 # neural-cdma — Engineered Superposition in Pretrained LLMs: a forensic tool and an honest map of the wall
 
+[![CI](https://github.com/ttzrs/neural-cdma/actions/workflows/ci.yml/badge.svg)](https://github.com/ttzrs/neural-cdma/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+<!-- [![DOI](https://zenodo.org/badge/DOI/PENDING.svg)](https://doi.org/PENDING) -->  <!-- add after Zenodo release -->
+
+
 This repository studies **CDMA-style superposition** (binding multiple signals into one activation with
 key-derived sign codes) inside *off-the-shelf, pretrained* transformer language models. It contains:
 
@@ -74,5 +80,27 @@ empirical / systems note, not a methods paper.
 
 ## Reproducibility
 
-Python 3.x, PyTorch, transformers; experiments run on a single 16 GB GPU (Qwen2.5-0.5B). Each `*.py` writes its
-`*_result.json`. License: [MIT](LICENSE).
+```bash
+pip install -r requirements.txt          # experiments
+cd watermark_pkg && pip install -e .      # the forensic tool
+pytest watermark_pkg/tests -q             # GPU tests included; CPU subset runs in CI
+```
+
+Experiments run on a single 16 GB GPU (Qwen2.5-0.5B). Each `*.py` writes its `*_result.json` (committed, so
+results are inspectable without re-running). License: [MIT](LICENSE).
+
+## Citation
+
+See [`CITATION.cff`](CITATION.cff) (GitHub "Cite this repository"). A Zenodo DOI will be minted on the first
+tagged release; this README's DOI badge is updated once available.
+
+```bibtex
+@software{vargas_neural_cdma_2026,
+  author  = {Vargas, Jos\'e},
+  title   = {neural-cdma: Engineered Superposition in Pretrained LLMs --- a forensic
+             activation-watermark system and an empirical map of the non-linear wall},
+  year    = {2026},
+  url      = {https://github.com/ttzrs/neural-cdma},
+  version = {0.1.0}
+}
+```

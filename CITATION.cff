@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software or its findings, please cite it as below."
+title: "neural-cdma: Engineered Superposition in Pretrained LLMs — a forensic activation-watermark system and an empirical map of the non-linear wall"
+abstract: >-
+  A white-box activation-watermarking system for forensic provenance and legal
+  non-repudiation of LLM generations, together with an empirical study of where
+  engineered CDMA superposition collapses on off-the-shelf pretrained models.
+  The central finding: CDMA superposition survives only in the linear channel
+  or with a trained de-multiplexer, and every untrained non-linear readout
+  collapses it; per-token surprise predicts multiplexability and language's
+  per-token demand collapses the multiplexing capacity to K≈2.
+type: software
+authors:
+  - given-names: "José"
+    family-names: "Vargas"
+    alias: "ttzrs"
+repository-code: "https://github.com/ttzrs/neural-cdma"
+url: "https://github.com/ttzrs/neural-cdma"
+license: MIT
+version: "0.1.0"
+date-released: "2026-06-06"
+keywords:
+  - large language models
+  - superposition
+  - activation watermarking
+  - forensic provenance
+  - mechanistic interpretability
+  - CDMA
