@@ -3,7 +3,7 @@
 [![CI](https://github.com/ttzrs/neural-cdma/actions/workflows/ci.yml/badge.svg)](https://github.com/ttzrs/neural-cdma/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-<!-- [![DOI](https://zenodo.org/badge/DOI/PENDING.svg)](https://doi.org/PENDING) -->  <!-- add after Zenodo release -->
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20570543.svg)](https://doi.org/10.5281/zenodo.20570543)
 
 
 This repository studies **CDMA-style superposition** (binding multiple signals into one activation with
@@ -100,7 +100,8 @@ tagged release; this README's DOI badge is updated once available.
   title   = {neural-cdma: Engineered Superposition in Pretrained LLMs --- a forensic
              activation-watermark system and an empirical map of the non-linear wall},
   year    = {2026},
-  url      = {https://github.com/ttzrs/neural-cdma},
+  doi     = {10.5281/zenodo.20570543},
+  url      = {https://doi.org/10.5281/zenodo.20570543},
   version = {0.1.0}
 }
 ```

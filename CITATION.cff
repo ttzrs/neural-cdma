@@ -10,6 +10,14 @@ abstract: >-
   collapses it; per-token surprise predicts multiplexability and language's
   per-token demand collapses the multiplexing capacity to K≈2.
 type: software
+doi: 10.5281/zenodo.20570543
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.20570543
+    description: "Concept DOI (always resolves to the latest version)"
+  - type: doi
+    value: 10.5281/zenodo.20570544
+    description: "Version 0.1.0 DOI"
 authors:
   - given-names: "Jose Joaquín"
     family-names: "Vargas Altalaguerri"

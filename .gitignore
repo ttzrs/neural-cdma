@@ -9,3 +9,4 @@ build/
 dist/
 HANDOFF.md
 PAPER_DRAFT.md
+.env
