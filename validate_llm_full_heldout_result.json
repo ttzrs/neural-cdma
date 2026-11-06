@@ -1,0 +1,51 @@
+{
+  "n_eval_batches": 32,
+  "eval_window_seed": 10000,
+  "n_tokens": {
+    "train": 278802,
+    "heldout": 264670
+  },
+  "dataset": "Salesforce/wikitext/wikitext-2-raw-v1",
+  "heldout_split": "validation",
+  "train": {
+    "model": "Qwen/Qwen2.5-0.5B",
+    "mode": "full_ft",
+    "untrained": {
+      "1": 0.009,
+      "2": 0.007,
+      "4": 0.013,
+      "6": 0.009,
+      "8": 0.006
+    },
+    "trained": {
+      "1": 0.246,
+      "2": 0.189,
+      "4": 0.157,
+      "6": 0.131,
+      "8": 0.109
+    },
+    "acc_K1": 0.246,
+    "k_cap_rel80": 1
+  },
+  "heldout": {
+    "model": "Qwen/Qwen2.5-0.5B",
+    "mode": "full_ft",
+    "untrained": {
+      "1": 0.008,
+      "2": 0.007,
+      "4": 0.014,
+      "6": 0.01,
+      "8": 0.007
+    },
+    "trained": {
+      "1": 0.207,
+      "2": 0.18,
+      "4": 0.154,
+      "6": 0.137,
+      "8": 0.106
+    },
+    "acc_K1": 0.207,
+    "k_cap_rel80": 2
+  },
+  "k_cap_rel80_heldout": 2
+}

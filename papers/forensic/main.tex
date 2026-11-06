@@ -1,0 +1,400 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage[font=small]{caption}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+\usepackage{amsmath,amssymb,booktabs,graphicx}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{microtype,xurl}
+\emergencystretch=2em
+\input{tables/macros}
+\newcommand{\metric}[1]{\csname #1\endcsname}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\sgn}{\operatorname{sgn}}
+\newcommand{\Enc}{\operatorname{Enc}}
+\title{Activation-Side Session Tagging for LLM Audit Logs:\\What a Residual-Stream Watermark Can and Cannot Prove}
+\author{Jose Joaqu\'in Vargas Altalaguerri\\Independent Researcher\\\texttt{jvargas8@xtec.cat}}
+\date{November 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We study session tags on logged transformer activations. Residual perturbations
+are recovered by subtracting a clean replay of the disputed text. Each condition
+uses 128 sessions, 128 generated tokens and injection fraction 0.01.
+\PrecisionAbstract{}
+Blind calibration remains near chance. Read-layer substitution recovers all
+sixteen bits in every measured model without the intervening marked computation:
+decoding does not prove execution. We separate physical-coordinate detection from
+sixteen-bit payload recovery. Sixty-four-coordinate detection strengthens nominal
+session-level tails without adding payload entropy. Long-rollout fidelity is
+substantially worse than short-horizon agreement suggested. Commit-then-verify
+semantics use externally witnessed Merkle roots. The tag supplements signed
+transcripts with an internal consistency check, not non-repudiation against its
+provider or black-box detection. Its incremental utility over signed unmodified
+activation logs is unproven; our contribution is characterization and negative
+results. Paired verification requires private access to text.
+\end{abstract}
+
+\section{Introduction}
+LLM audits ask what text was recorded, whether the associated internal trace is
+consistent, and whether the claimed computation occurred. A signed transcript
+addresses the first question. It does not prove the truth of a dishonest signer's
+original statement. An activation tag addresses the second question under capture
+and custody assumptions. It does not answer the third.
+
+The earlier version~\citep{vargasv1} claimed legal non-repudiation from a symmetric
+key and logs controlled by the provider. That claim is withdrawn. The provider
+can fabricate a matching record or present an unmarked record to seek exculpation.
+The earlier protocol description also conflated static calibration with clean-state
+subtraction and reported pooled prompt recovery as one-session evidence.
+
+We replace those claims with an exact paired/blind protocol, session-level
+statistics, long autoregressive fidelity measurements and null/substitution
+controls across Qwen configurations. We distinguish physical detection strength
+from logical payload recovery. Our central negative findings are limited blind
+recovery, long-horizon text divergence and successful known-key fabrication at the
+read layer. The remaining role is a session label on a precommitted activation log.
+
+A signed text hash should always accompany that label. It already binds exact
+text more strongly and cheaply. The additional activation channel can test whether
+a trace is consistent with a replay of the disputed transcript. The channel is
+separate from text storage, not statistically independent of text. Compact
+projections permit commitment without publishing text; they do not eliminate the
+paired verifier's need to access it.
+
+\section{Threat model and commit-then-verify semantics}
+The provider holds key $K$, runs inference and retains private text and activations.
+A client disputes a transcript. An auditor receives authenticated records and
+controlled access to the model snapshot, key and text. A separately witnessed
+append-only log or regulator timestamps commitments before a dispute. Merkle
+inclusion and consistency checks follow the transparency-log pattern~\citep{rfc6962}.
+Provider timestamps alone do not prevent retrospective rewriting.
+
+Let $x$ and $y$ be prompt and emitted token sequences. With length-delimited
+canonical serialization $\Enc$, the proposed inference-time record is
+\begin{align}
+ q&=H(\Enc(x,y)),\qquad
+ z=C_K^\top\bar h'_{\rm read}\in\RR^B
+       \quad\text{or}\quad\bar h'_{\rm read}\in\RR^d,\\
+ r&=\Enc(\mathrm{sid},\tau,q,\mathrm{model\_hash},\mathrm{protocol\_hash},
+               \mathrm{key\_id},b,T,z),\label{eq:record}\\
+ u&=H(\Enc(r,\rho)),\qquad
+ \mathcal R_j=\operatorname{MerkleRoot}(u_1,\ldots,u_j).
+\end{align}
+The salt $\rho$ prevents simple dictionary tests against predictable records. The
+model hash binds weights, architecture and tokenizer. The protocol hash fixes
+layers, precision, hooks, code generation, averaging positions, float encoding,
+threshold, and the blind calibration identifier/hash (corpus, dataset revision,
+selected prompt/token sequences and calibration-vector serialization). Key version and payload mapping are frozen before disputes. Deployment
+also needs signatures, retention rules and an audited publication deadline;
+commitments do not enforce complete capture or prevent selective omission.
+
+The auditor checks inclusion, timing, key/version commitments and transcript hash
+before evaluating the activation tag. A hash mismatch already detects exact text
+alteration. For a matching candidate, paired replay tests internal consistency
+with the committed trace. Exculpation is restricted to timely committed records
+under a validated logging policy. Neither a missing record nor a nonsignificant
+tag establishes non-origin.
+
+A full-window projection suffices for the owner paired check because averaging
+and projection commute. Arbitrary prefix checks or new keys require richer traces
+or additional precommitted projections. Publishing only the Merkle root conceals
+these values, but disclosed activations are not guaranteed to hide text. The
+transparency integration is proposed architecture; the experiments evaluate the
+tag and do not implement a production commitment service.
+
+\paragraph{Comparison with signed logs.}
+The baseline signs $H(\Enc(\mathrm{sid},\tau,x,y,\mathrm{model\_hash}))$.
+Ed25519 signatures occupy $64$ bytes, excluding the record and Merkle path, and
+provide approximately $128$-bit security~\citep{rfc8032}. HMAC-SHA-256 normally
+uses a $32$-byte MAC and is symmetric. A SHA-256 fixed-target second-preimage
+idealization has scale $2^{-256}$, versus $2^{-128}$ for generic collisions.
+These are cryptographic security scales, not statistical $p$-values. Signing
+introduces no model-distribution change: $D_{\rm KL}=0$.
+
+An essential ablation is a \emph{signed unmodified activation log}: recording and
+signing clean activations, or $C_K^\top\bar h$ without injection, permits the same
+replay-consistency comparison with $D_{\rm KL}=0$. Perturbation adds a known-payload
+statistical test and a key-conditioned session label; a signature already provides
+key binding. Its incremental utility over this unmodified-log baseline is not
+demonstrated here. The contribution is an empirical characterization, including
+negative results, rather than a proven audit advantage.
+\begin{table}[htbp]\centering\small
+\begin{tabular}{p{.25\linewidth}p{.32\linewidth}p{.32\linewidth}}
+\toprule
+Property & Signed transcript + commitment & Activation tag + same commitment\\
+\midrule
+Exact text binding & Primary cryptographic mechanism & Still requires the text hash\\
+Internal consistency & Text log alone: no activation comparison & Replay against marked states\\
+Signed unmodified activation log & Clean trace/projection also supports replay; $D_{\rm KL}=0$ & Known-payload statistical test; incremental utility unproven\\
+Private commitment & Unpublished text can be hashed & Compact projection can be committed\\
+Detection guarantee & Signature/hash assumptions & Statistical null and capture assumptions\\
+Dishonest provider & Can sign a false original claim & Can fabricate before commitment\\
+Proof of execution & No & No; substitution passes\\
+\bottomrule
+\end{tabular}
+\caption{The activation tag supplements transcript integrity; it does not strengthen its cryptographic guarantee.}\label{tab:comparison}
+\end{table}
+
+An external commitment prevents undetected later edits, not earlier fabrication.
+Wrong-key controls represent fixed non-owner decoders. A key-holding provider or
+worker is stronger: it can attach the code at the read layer without carrying it
+through the marked intermediate computation. The public research keys are test
+values, not production secrets.
+
+\section{Mechanism and exact protocol}
+\subsection{Injection and alignment}
+For width $d$ and $L$ blocks, zero-indexed output hooks use
+$\ell_{\rm inj}=\operatorname{round}(L/3)$ and
+$\ell_{\rm read}=\operatorname{round}(5L/6)$. With payload $b\in\{-1,+1\}^B$,
+\begin{equation}
+ C_K\in\{-d^{-1/2},+d^{-1/2}\}^{d\times B},\qquad
+ h'_t=h_t+\alpha\|h_t\|_2\frac{C_Kb}{\|C_Kb\|_2+\epsilon}.\label{eq:inject}
+\end{equation}
+SHA-256 of $K$ seeds a CPU PyTorch generator for sign-normal code columns. The
+first sixteen of sixty-four columns define the uncoded condition. This is a
+reproducible PRNG construction, not a security-hardened PRF.
+
+Greedy generation uses the KV cache. The output hook marks the prompt's final
+position and each subsequent position predicting an emitted token. Logged $h'_t$
+therefore predicts $y_t$; it is not the state containing $y_t$. Marked cache states
+persist. For prompt length $P$, clean replay reads positions $P-1$ to $P+T-2$.
+The record stores $T$ prediction states or their declared projection/mean.
+Experimental payloads are sixteen random signs seeded by $10000+i$, not unique
+session identifiers. The full identifier remains in Eq.~\eqref{eq:record}.
+
+\subsection{Paired and blind verification}
+Paired verification disables injection and teacher-forces the exact disputed
+sequence $x\Vert y$ to obtain aligned clean states. It does not subtract states
+from an independently generated clean continuation after its text diverges:
+\begin{equation}
+ s^{\rm paired}=\frac1T\sum_t C_K^\top[h'_t-h_t(x,y_{<t})]
+             =\bar s'-C_K^\top\bar h(x,y),\qquad \hat b=\sgn(s).
+\end{equation}
+Replay needs no embedding key; decoding still needs $K$ or $C_K$. The model,
+tokenizer, precision and hook alignment must match. Numerical differences between
+cached generation and full teacher forcing are included in the measured residual.
+
+Blind verification instead subtracts static calibration from disjoint clean
+continuations:
+\begin{equation}
+ c_K=M^{-1}\sum_{u=1}^{M}C_K^\top h_u^{\rm calib},\qquad
+ s^{\rm blind}=\bar s'-c_K.
+\end{equation}
+This removes corpus-mean bias, not prompt-specific activation variation.
+\ProtocolFinding
+
+\subsection{Physical detection versus payload recovery}
+At $B=16$, signs directly encode sixteen payload bits. At $B=64$, each logical
+bit is repeated in four distinct code columns. Majority voting recovers the
+sixteen-bit payload; a two--two tie maps to $+1$, as do zero scores. Repetition
+adds redundancy, not payload entropy.
+
+\emph{Detection} uses physical matches $m$ across $n=B$ code coordinates. Under
+the independent fair-sign null, its one-sided session tail is
+\begin{equation}
+ p_{\rm phys}(m;B)=2^{-B}\sum_{k=m}^{B}{B\choose k}.\label{eq:p}
+\end{equation}
+Repeating target signs does not itself correlate independent null code decisions;
+it is therefore legitimate to test all sixty-four physical coordinates under
+that null. Their errors can be correlated under the marked alternative without
+invalidating a null-defined test. Payload recovery is a separate quantity:
+logical bit accuracy and the optional sixteen-logical-sign reference tail after
+majority vote. Under independent fair physical signs, tie-to-$+1$ makes a null
+logical vote positive with probability $11/16$, not $1/2$. Logical tails are therefore
+labelled ``nominal (payload-randomised)'': the fair-match reference averages over
+independent random payload signs and is not a conditional fixed-payload guarantee.
+
+For $B=16$, $p(14;16)=\metric{Pvalue14}$ and
+$p(16;16)=\metric{Pvalue16}$. Only sixteen-coordinate statistics have this floor;
+sixty-four-coordinate detection can pass $10^{-5}$.
+\input{tables/v1_pvalues}
+Fixed code overlaps and shared activation structure may depart from independent
+fair null signs. We therefore call the binomial tails nominal and report physical
+wrong-key/no-mark exceedances. Neither a low tail nor good payload recovery is an
+adversarial forgery bound. Thresholds are strict and applied per session; deltas
+are never pooled across prompts. Searching keys, payloads or windows would
+require a separate multiple-testing policy.
+
+\section{Experimental setup}
+The study covers Qwen2.5-0.5B fp32/bf16, 1.5B bf16 and 7B bf16. All tables are
+generated from the result JSONs; Table~\ref{tab:setup} identifies measured
+conditions. Pending configurations: \MissingRuns.
+\input{tables/setup}
+Each prescribed condition uses $128$ sessions, $128$ separate calibration prompts,
+$128$ generated tokens, $\alpha=0.01$, and physical $B\in\{16,64\}$.
+From WikiText-2 validation (\texttt{Salesforce/wikitext},
+\texttt{wikitext-2-raw-v1}), the script takes rows of at least $200$ characters,
+excluding headings, with enough tokens. The first eligible rows supply session
+prompts; the next supply calibration. Prompts use their first $32$ tokens.
+Calibration uses clean generated continuations, not dataset suffixes. Torch seed
+is zero, dropout is disabled and decoding is greedy.
+
+\paragraph{Fidelity.}
+Clean and marked runs freely generate full continuations. We measure the fraction
+entirely identical, zero-indexed first divergence (censored at $T$), and full-sequence
+token agreement. Conditional $D_{\rm KL}(p'_t\|p_t)$ is averaged through the first
+differing prediction inclusive, while token histories still agree. Hidden caches
+already differ. Subsequent token agreement measures trajectory similarity, not
+same-context predictive accuracy or semantic quality.
+
+\paragraph{Verification and controls.}
+Each session supplies bit accuracy, matches and tails for paired and blind modes.
+We summarize medians and fractions below four thresholds. Prefix checks average
+$T\in\{8,16,32,64,128\}$ states. Two wrong keys project the same marked/clean states;
+each has its own blind calibration. Blind no-mark checks a clean generation with
+the owner key. Paired no-mark compares that cached clean generation with a full
+clean teacher-forced replay, isolating numerical cache/full-pass differences.
+Its threshold rates estimate the empirical FPR of the recommended verifier.
+Substitution constructs
+\begin{equation}
+ h_t^{\rm sub}=h_t(x,y_{<t})+
+       \alpha\|h_t(x,y_{<t})\|_2\frac{C_Kb}{\|C_Kb\|_2}
+\end{equation}
+at the read layer. It bypasses the intermediate \emph{marked} computation, not
+the full clean reference replay. It represents known-key fabrication.
+
+\section{Results}
+\subsection{Long-horizon fidelity and scale/precision}
+\PrecisionAbstract{}
+\input{tables/fidelity}
+The v1 claim of unchanged text does not survive the $128$-token test. Conditional
+KL stays small, yet a single changed greedy decision can alter subsequent context.
+A nearly tied decision is a plausible trigger; top-two margins were not measured.
+The matched 0.5B comparison separates dtype from size and reproduces most of the
+fidelity loss previously seen against larger bf16 models. At fixed $\alpha=0.01$,
+bf16 is a different operating point: rounding and cache/replay numerics can change
+both fidelity and recovery. This is not a universal precision law.
+
+\subsection{Detection and recovery}
+\input{tables/verification}
+Paired recovery also drops when only the 0.5B dtype changes. Its variation across
+bf16 model sizes is smaller than that matched precision drop and is nonmonotonic;
+7B bf16 is not worse than 0.5B bf16. Blind recovery stays near chance. Sixty-four-physical-coordinate tails
+are substantially smaller than the sixteen-coordinate tails, even though
+majority-decoded logical accuracy is lower than uncoded accuracy. A fixed normalized
+perturbation budget is shared among more columns: coding does not automatically
+improve payload recovery. A stronger detection statistic is not a larger payload.
+
+Figure~\ref{fig:curve} and Table~\ref{tab:curve} distinguish physical detection
+from logical recovery over prefix length. More tokens change noise and accumulated
+cache effects; they do not increase the number of code-coordinate trials.
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{figures/p_vs_T.pdf}
+\caption{Median session-level nominal detection tails for sixteen and sixty-four physical coordinates. Solid: paired; dashed: blind. The sixteen-coordinate floor applies only to the left panel.}\label{fig:curve}
+\end{figure}
+\input{tables/p_vs_T}
+
+\subsection{Null controls and substitution}
+\ControlResults
+These rates fluctuate around low null exceedance rates; the occasional rate above
+nominal does not establish a calibrated bound. Zero observed exceedances cannot
+validate a $10^{-5}$ false-positive guarantee with only $128$ sessions per series.
+The physical controls test the null required by Eq.~\eqref{eq:p}; repetition is
+not a reason to discard those coordinates.
+Paired no-mark directly measures the empirical FPR of the recommended verifier,
+including cached-generation versus full-replay numerical differences.
+\PairedNoMarkResults{}
+Pending paired no-mark conditions: \PairedNoMarkPending.
+\input{tables/controls}
+\begin{figure}[htbp]\centering
+\includegraphics[width=.86\linewidth]{figures/session_p_ecdf.pdf}
+\caption{Sixteen-physical-coordinate nominal-tail ECDFs: owner and two wrong keys, paired and blind; no-mark is blind and, when measured, paired.}\label{fig:ecdf}
+\end{figure}
+Substitution recovers all sixteen uncoded bits in every measured model. It matches
+or exceeds honest paired recovery without carrying the mark through intervening
+blocks. A near-identity local residual response is a plausible explanation, not a
+measured Jacobian. The result excludes interpreting successful decoding as proof
+of execution. Precommitment prevents later rewriting; it cannot make an earlier
+fabrication truthful.
+
+\section{Failure of the tested projected-logit decoder}
+The legacy \texttt{watermark\_provenance\_result.json} probe used sixteen prompts
+and eight prediction positions, not eight prompts. At $B=16$, $\alpha=0.01$, it
+reports residual accuracy $\VoneResidual$, tested logit accuracy $\VoneLogits$,
+KL $\VoneKL$ and token agreement $\VoneAgreement$.
+\begin{figure}[htbp]\centering
+\includegraphics[width=.68\linewidth]{figures/logit_wall.pdf}
+\caption{Legacy residual/logit recovery versus amplitude; not a long-rollout or blind-verification test.}\label{fig:wall}
+\end{figure}
+The logit decoder correlates differences against $WC_K$. Unembedding $W$ is linear;
+final RMS normalization is nonlinear. Weak recovery by this decoder does not prove
+all logit or text detectors impossible. No text-only detector is validated here.
+The broader empirical study is companion Paper B,
+\emph{Engineered CDMA superposition in pretrained transformers collapses at every
+untrained non-linearity}~\citep{vargascompanion}.
+
+\section{Related work}
+\citet{kirchenbauer2023} favor pseudorandom green tokens and detect from text without
+model parameters. Our activation-log tag has a different access model and does
+not inherit that black-box guarantee. SEAL~\citep{seal2025} edits latent subspaces
+for model-ownership watermarking with white-/black-box settings.
+EverTracer~\citep{evertracer2025} uses fine-tuning and calibrated probability
+variation for probabilistic model fingerprinting. Both concern model ownership,
+not per-session audit labels. No robustness comparison is measured here.
+Certificate Transparency~\citep{rfc6962} supplies append-only commitment machinery,
+not truthfulness of logged statements. zkLLM~\citep{zkllm2024} instead constructs
+zero-knowledge machinery to prove LLM computation. Its soundness target differs
+from correlation with a secret activation code; activation tagging is not a
+lightweight equivalent of verifiable inference.
+
+\section{Limitations}
+The experiments cover one prompt source, greedy decoding, one placement rule and
+fixed public research seeds. They do not establish semantic fidelity, sampling
+quality, paraphrase robustness or stability under fine-tuning. Model, tokenizer,
+precision or kernel drift can break paired replay. The matched 0.5B experiment
+shows that precision, rather than size, dominates the measured degradation; fixed
+$\alpha=0.01$ is not precision-invariant. This attribution is limited to these
+models and kernels, without additional amplitudes or repeated runs.
+Only two wrong keys are tested;
+physical null independence remains an assumption checked imperfectly by controls.
+Logical majority votes have tie bias, and sixteen payload bits are not a unique
+session identifier. Neither detection nor failure to detect proves origin or
+non-origin against a malicious provider.
+
+Capture integrity, logging completeness, retention, commitment privacy and
+production costs require separate evaluation. Compact projections are not
+zero-knowledge disclosures. Paired verification needs text privately. Signed
+unmodified activation logs also support internal replay consistency without
+perturbing generation. The incremental utility of the perturbation over that
+baseline remains unproven; these experiments characterize the mechanism and its
+negative results rather than establish a deployment advantage.
+
+\section*{Reproducibility}
+Repository: \url{https://github.com/ttzrs/neural-cdma}. Previous publication:
+\href{https://doi.org/10.5281/zenodo.20570543}{10.5281/zenodo.20570543}, a concept DOI
+resolving to v1 record \href{https://doi.org/10.5281/zenodo.20570544}{20570544}
+\citep{vargasv1}. Neither identifies this revision.
+\texttt{watermark\_scale.py} defines the current experiment;
+\texttt{watermark\_provenance.py} supports the legacy probe.
+Table~\ref{tab:revisions} identifies exact model revisions. New JSONs record
+\texttt{config.model\_revision}; the earlier snapshots are listed explicitly.
+The experiment saves decoding statistics, not the committed tuple in
+Eq.~\eqref{eq:record}. Publishing reproducible committed tuples remains future work.
+\input{tables/model_revisions}
+Run \texttt{bash build.sh} in \texttt{papers/forensic/} to regenerate tables,
+figures, BibTeX references and PDF. Numeric claims use generated macros; full
+source hashes are in \path{tables/source_manifest.json}. The package's demonstrative
+reinjection verifier is distinct from the committed-record protocol specified here.
+
+\begingroup\small
+\bibliographystyle{plainnat}
+\bibliography{refs}
+\endgroup
+\appendix
+\section{Changes from version 1}
+\begin{table}[htbp]\centering\small
+\begin{tabular}{p{.17\linewidth}p{.32\linewidth}p{.40\linewidth}}
+\toprule
+Issue & v1 & This revision\\
+\midrule
+Prompts & ``8''; actually $16\times8$ positions & Separate session/calibration counts\\
+Protocol & Static formula, paired code & Separate paired and blind definitions\\
+Statistics & Pooled deltas & Per-session physical detection; logical recovery\\
+Fidelity/claim & Short agreement; non-repudiation & Long divergence; committed-record consistency\\
+\bottomrule
+\end{tabular}
+\caption{Changes from the previous version.}\label{tab:corrections}
+\end{table}
+\end{document}

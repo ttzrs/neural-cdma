@@ -8,11 +8,14 @@ Referencia: experimento watermark_provenance.py en este repo.
 Punto de operación medido: B=16 bits, α=0.01·‖h‖, KL≈0, token_agreement≈1.0,
 bitacc_residual≈0.92, control≈0.50.
 
-FLUJO CORRECTO:
+FLUJO CORRECTO (una generación = una sesión):
   1. embed: se usa durante la inferencia para inyectar el payload.
-  2. verify/extract: re-corre los prompts CON el hook embed activo, también sin
-     él para calibración, y decodifica desde la diferencia delta = h_wm - h_clean.
-     Esto replica exactamente el protocolo de watermark_provenance.py.
+  2. paired: el verificador re-ejecuta el texto disputado SIN embed (teacher-forced)
+     y decodifica Cᵀ mean_t(h_wm - h_clean), usando el log del proveedor.
+     La v1 del paper usaba paired; sin log se conserva la reinyección como demo.
+  3. blind: decodifica Cᵀ mean_t h_wm - calibration, SIN pase limpio del texto
+     disputado. calibrate obtiene esa media sobre un corpus limpio disjunto.
+  Nunca se promedian deltas de distintos prompts para calcular un p-valor.
 """
 from __future__ import annotations
 
@@ -20,9 +23,8 @@ import contextlib
 from typing import Any
 
 import torch
-from scipy import stats as scipy_stats
 
-from .codec import make_codes, encode_delta, decode
+from .codec import make_codes, encode_delta, decode, session_pvalue
 from .ecc import ecc_encode, ecc_decode
 
 
@@ -199,26 +201,44 @@ class Watermark:
             h = out[0] if isinstance(out, tuple) else out
             h_acc.append(h.detach().float().clone())
 
-        read_handle = read_layer_obj.register_forward_hook(read_hook)
-
-        try:
-            if with_embed and payload is not None:
-                with self.embed(model, payload):
-                    for prompt in prompts:
-                        toks = tokenizer(prompt, return_tensors="pt").input_ids.to(device)
-                        with torch.no_grad():
-                            model(input_ids=toks)
-            else:
+        embed_context = self.embed(model, payload) if with_embed else contextlib.nullcontext()
+        with embed_context:
+            # Leer DESPUÉS de inyectar, también cuando inject_layer == read_layer.
+            read_handle = read_layer_obj.register_forward_hook(read_hook)
+            try:
                 for prompt in prompts:
                     toks = tokenizer(prompt, return_tensors="pt").input_ids.to(device)
                     with torch.no_grad():
                         model(input_ids=toks)
-        finally:
-            read_handle.remove()
+            finally:
+                read_handle.remove()
 
         if not h_acc:
             raise RuntimeError("No se capturó ninguna activación.")
         return torch.cat([h.view(-1, h.shape[-1]) for h in h_acc], dim=0)
+
+    def calibrate(
+        self,
+        model: Any,
+        prompts: list[str],
+        tokenizer: Any,
+        device: torch.device | str | None = None,
+    ) -> torch.Tensor:
+        """Media de Cᵀh en read_layer sobre tokens de un corpus limpio disjunto.
+
+        No activa embed. Devuelve (n_bits,), ponderando por tokens, no por prompts.
+        El llamador debe usar textos ajenos a las sesiones que verificará y el
+        mismo modelo, capa, clave y tokenización que en la extracción.
+        """
+        if not prompts:
+            raise ValueError("La calibración requiere un corpus limpio no vacío.")
+        if device is None:
+            device = next(model.parameters()).device
+        device = torch.device(device)
+        h_clean = self._run_and_collect(model, prompts, tokenizer, device,
+                                        with_embed=False)
+        codes = self._get_codes(h_clean.shape[-1], h_clean.device)
+        return (h_clean.float() @ codes.float()).mean(dim=0)
 
     def extract(
         self,
@@ -228,51 +248,80 @@ class Watermark:
         payload: list[int] | None = None,
         calibration: torch.Tensor | None = None,
         device: torch.device | str | None = None,
+        mode: str = "paired",
+        logged_activations: torch.Tensor | None = None,
     ) -> dict[str, Any]:
-        """Extrae el payload watermark desde las activaciones del modelo.
+        """Extrae el payload de UNA sesión; nunca mezcla distintos prompts.
 
-        Protocolo (replicando watermark_provenance.py):
-          1. Corre prompts CON embed activo → h_wm
-          2. Corre prompts SIN embed → h_clean
-          3. delta = h_wm - h_clean (promediado sobre tokens)
-          4. Decodifica delta con los códigos CDMA de esta clave
+        paired: Cᵀ mean_t(h_wm - h_clean). El verificador re-ejecuta sin embed
+        el texto disputado (teacher-forced). Con un log (T, d) de los T tokens
+        generados, el texto de entrada incluye prompt y generación completa;
+        se excluye la última posición limpia (no predijo ningún token del log).
+        Si el log cubre toda la secuencia de entrada, se alinea posición a posición.
 
-        Si payload es None, se inyecta el payload [1]*n_bits para ver si la señal
-        es detectable (útil para comprobar la cadena, no para verificar un payload).
+        blind: Cᵀ mean_t h_wm - calibration. Exige calibración estática sobre un
+        corpus limpio disjunto y NO hace un pase limpio del texto disputado.
 
-        Retorna:
-            {
-              "bits": list[int],         # bits recuperados (0/1)
-              "bits_pm1": Tensor,        # ±1
-              "confidence": Tensor,      # por bit
-              "raw_score": Tensor,       # proyección media del delta sobre códigos
-            }
+        logged_activations permite usar el log del proveedor en vez de reinyectar;
+        en blind no requiere modelo ni tokenizer y prompts puede ser [].
+        Sin log, corre una demo CON embed (payload por defecto [1]*n_bits),
+        no una prueba independiente de proveniencia de una generación anterior.
+
+        Retorna bits (0/1), bits_pm1 (±1), confidence y raw_score (n_bits,)
+        después de la resta correspondiente al modo.
         """
+        if mode not in {"paired", "blind"}:
+            raise ValueError("mode debe ser 'paired' o 'blind'.")
+        if mode == "blind" and calibration is None:
+            raise ValueError("El modo blind requiere calibration de un corpus limpio disjunto.")
+        if len(prompts) > 1 or (not prompts and (mode == "paired" or logged_activations is None)):
+            raise ValueError("extract requiere una sola sesión (un prompt), no promediar sesiones.")
+        if logged_activations is not None:
+            if (logged_activations.ndim != 2 or 0 in logged_activations.shape
+                    or not torch.isfinite(logged_activations).all()):
+                raise ValueError("logged_activations debe ser un tensor finito no vacío (T, d).")
+        if calibration is not None:
+            if calibration.shape != (self.n_bits,) or not torch.isfinite(calibration).all():
+                raise ValueError("calibration debe ser un tensor finito (n_bits,).")
+
         if device is None:
-            device = next(model.parameters()).device
-        if isinstance(device, str):
-            device = torch.device(device)
-        if payload is None:
-            payload = [1] * self.n_bits
+            device = (logged_activations.device if mode == "blind" and logged_activations is not None
+                      else next(model.parameters()).device)
+        device = torch.device(device)
+        if logged_activations is None:
+            if payload is None:
+                payload = [1] * self.n_bits
+            h_wm = self._run_and_collect(model, prompts, tokenizer, device,
+                                         with_embed=True, payload=payload)
+        else:
+            h_wm = logged_activations.detach().to(device=device, dtype=torch.float32)
 
-        h_wm = self._run_and_collect(model, prompts, tokenizer, device,
-                                     with_embed=True, payload=payload)
-        h_clean = self._run_and_collect(model, prompts, tokenizer, device,
-                                        with_embed=False)
+        if mode == "paired":
+            h_clean = self._run_and_collect(model, prompts, tokenizer, device,
+                                            with_embed=False)
+            if h_clean.shape[1] != h_wm.shape[1] or h_clean.shape[0] < h_wm.shape[0]:
+                raise ValueError("El pase limpio no contiene las posiciones (T, d) del log.")
+            # Log de generación: posiciones que predijeron los tokens emitidos,
+            # desde prompt_len-1; coincide con teacher_forced_read del experimento.
+            if logged_activations is not None and h_clean.shape[0] > h_wm.shape[0]:
+                h_clean = h_clean[-h_wm.shape[0] - 1:-1]
+            observed = h_wm - h_clean
+        else:
+            observed = h_wm
 
-        # delta = diferencia; promediar sobre tokens mejora SNR
-        delta = (h_wm - h_clean).mean(dim=0)   # (d,)
-        d = delta.shape[0]
-        codes = self._get_codes(d, delta.device)
-
-        bits_hat, confidence = decode(delta.unsqueeze(0), codes, calibration=calibration)
-        bits_01 = [(1 if b > 0 else 0) for b in bits_hat.tolist()]
+        codes = self._get_codes(observed.shape[-1], observed.device)
+        if calibration is not None:
+            calibration = calibration.detach().to(device=device, dtype=torch.float32)
+        bits_hat, confidence = decode(observed, codes, calibration=calibration)
+        raw_score = observed.float().mean(dim=0) @ codes.float()
+        if calibration is not None:
+            raw_score = raw_score - calibration
 
         return {
-            "bits": bits_01,
+            "bits": [(1 if b > 0 else 0) for b in bits_hat.tolist()],
             "bits_pm1": bits_hat,
             "confidence": confidence,
-            "raw_score": codes.float().T @ delta.float(),
+            "raw_score": raw_score,
         }
 
     def verify(
@@ -284,14 +333,19 @@ class Watermark:
         calibration: torch.Tensor | None = None,
         device: torch.device | str | None = None,
         p_threshold: float = 1e-3,
+        mode: str = "paired",
+        logged_activations: torch.Tensor | None = None,
     ) -> dict[str, Any]:
-        """Verifica proveniencia comparando payload esperado vs recuperado.
+        """Verifica el payload y calcula el p-valor de UNA sesión (una generación).
 
-        Inyecta el payload esperado, lee las activaciones watermarked y clean,
-        decodifica el delta y compara con expected_payload.
+        Nunca promedia deltas entre prompts. En paired el verificador necesita
+        re-ejecutar sin embed el texto disputado, alineado con las posiciones
+        predictoras de logged_activations (ver extract). Blind usa calibración
+        estática de un corpus limpio disjunto, sin ese pase limpio.
+        Sin log se reinyecta el payload esperado: es una demo, no evidencia
+        independiente de proveniencia de una generación anterior.
 
         Usa la cola binomial unilateral P(≥k matches | chance 0.5) como p_value.
-        Con bit_acc≈0.92 en 16 bits y múltiples prompts la señal es definitiva.
 
         Retorna:
             {
@@ -303,11 +357,15 @@ class Watermark:
               "recovered_bits": list[int],
             }
         """
+        if len(expected_payload) != self.n_bits or set(expected_payload) - {0, 1}:
+            raise ValueError(f"expected_payload debe contener {self.n_bits} bits 0/1.")
         result = self.extract(
             model, prompts, tokenizer,
             payload=expected_payload,
             calibration=calibration,
             device=device,
+            mode=mode,
+            logged_activations=logged_activations,
         )
         recovered = result["bits"]
         expected_pm1 = torch.tensor(
@@ -319,9 +377,8 @@ class Watermark:
         matches = int((expected_pm1.to(recovered_pm1.device) == recovered_pm1).sum().item())
         bit_acc = matches / n
 
-        # p_value: cola unilateral — P(≥matches | n, 0.5)
-        # scipy.stats.binom.sf(k-1, n, 0.5) = P(X >= k)
-        p_value = float(scipy_stats.binom.sf(matches - 1, n, 0.5))
+        # p_value por sesión: cola unilateral — P(≥matches | n, 0.5).
+        p_value = session_pvalue(matches, n)
 
         return {
             "match_bits": matches,

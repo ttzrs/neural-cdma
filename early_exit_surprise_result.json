@@ -1,0 +1,29 @@
+{
+  "model": "Qwen/Qwen2.5-0.5B",
+  "n_layers": 24,
+  "n_tokens": 1024,
+  "surprise_terciles": [
+    0.303,
+    1.004
+  ],
+  "F\u00c1CIL": {
+    "mean_exit_layer": 21.08,
+    "pct_exit_by_halfdepth": 0.0,
+    "compute_saved_pct": 12.2
+  },
+  "MEDIO": {
+    "mean_exit_layer": 22.85,
+    "pct_exit_by_halfdepth": 0.0,
+    "compute_saved_pct": 4.8
+  },
+  "DIF\u00cdCIL": {
+    "mean_exit_layer": 23.68,
+    "pct_exit_by_halfdepth": 0.0,
+    "compute_saved_pct": 1.3
+  },
+  "TODOS": {
+    "mean_exit_layer": 22.54,
+    "pct_exit_by_halfdepth": 0.0,
+    "compute_saved_pct": 6.1
+  }
+}

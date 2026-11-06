@@ -1,0 +1,139 @@
+{
+  "train": {
+    "surprise_terciles": [
+      2.81,
+      7.17
+    ],
+    "by_K": {
+      "1": {
+        "acc_easy": 0.686,
+        "acc_mid": 0.019,
+        "acc_hard": 0.0,
+        "acc_all": 0.235
+      },
+      "2": {
+        "acc_easy": 0.511,
+        "acc_mid": 0.037,
+        "acc_hard": 0.0,
+        "acc_all": 0.183
+      },
+      "4": {
+        "acc_easy": 0.402,
+        "acc_mid": 0.039,
+        "acc_hard": 0.0,
+        "acc_all": 0.147
+      },
+      "8": {
+        "acc_easy": 0.246,
+        "acc_mid": 0.031,
+        "acc_hard": 0.0,
+        "acc_all": 0.093
+      }
+    },
+    "prior_only": {
+      "token": 279,
+      "acc_easy": 0.117,
+      "acc_mid": 0.013,
+      "acc_hard": 0.0,
+      "acc_all": 0.043
+    },
+    "retention_vs_K1": {
+      "1": {
+        "easy": 1.0,
+        "mid": 1.0,
+        "hard": null
+      },
+      "2": {
+        "easy": 0.745,
+        "mid": 1.947,
+        "hard": null
+      },
+      "4": {
+        "easy": 0.586,
+        "mid": 2.053,
+        "hard": null
+      },
+      "8": {
+        "easy": 0.359,
+        "mid": 1.632,
+        "hard": null
+      }
+    },
+    "k_cap_rel80": 1
+  },
+  "heldout": {
+    "surprise_terciles": [
+      3.1,
+      7.79
+    ],
+    "by_K": {
+      "1": {
+        "acc_easy": 0.618,
+        "acc_mid": 0.01,
+        "acc_hard": 0.0,
+        "acc_all": 0.21
+      },
+      "2": {
+        "acc_easy": 0.5,
+        "acc_mid": 0.026,
+        "acc_hard": 0.0,
+        "acc_all": 0.175
+      },
+      "4": {
+        "acc_easy": 0.406,
+        "acc_mid": 0.033,
+        "acc_hard": 0.0,
+        "acc_all": 0.146
+      },
+      "8": {
+        "acc_easy": 0.251,
+        "acc_mid": 0.03,
+        "acc_hard": 0.0,
+        "acc_all": 0.094
+      }
+    },
+    "prior_only": {
+      "token": 279,
+      "acc_easy": 0.131,
+      "acc_mid": 0.011,
+      "acc_hard": 0.0,
+      "acc_all": 0.047
+    },
+    "retention_vs_K1": {
+      "1": {
+        "easy": 1.0,
+        "mid": 1.0,
+        "hard": null
+      },
+      "2": {
+        "easy": 0.809,
+        "mid": 2.6,
+        "hard": null
+      },
+      "4": {
+        "easy": 0.657,
+        "mid": 3.3,
+        "hard": null
+      },
+      "8": {
+        "easy": 0.406,
+        "mid": 3.0,
+        "hard": null
+      }
+    },
+    "k_cap_rel80": 2
+  },
+  "n_eval_batches": 32,
+  "eval_window_seed": 10000,
+  "eval_windows_per_batch": 64,
+  "n_eval_windows": 2048,
+  "n_tokens": {
+    "train": 278802,
+    "heldout": 264670
+  },
+  "dataset": "Salesforce/wikitext/wikitext-2-raw-v1",
+  "heldout_split": "validation",
+  "tercile_thresholds": "estimated independently on each evaluated split using K=1 surprise",
+  "prior_only_fit_split": "train",
+  "k_cap_rel80_heldout": 2
+}

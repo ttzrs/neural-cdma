@@ -1,13 +1,33 @@
 """Tests para la matemática del p_value binomial en verify()."""
 import pytest
-from scipy import stats as scipy_stats
 from cdma_watermark.watermark import Watermark
+from cdma_watermark.codec import session_pvalue
 import torch
 
 
 def binomial_p(k: int, n: int) -> float:
     """P(X >= k | n, 0.5) — cola unilateral."""
-    return float(scipy_stats.binom.sf(k - 1, n, 0.5))
+    return session_pvalue(k, n)
+
+
+@pytest.mark.parametrize("matches, expected", [
+    (14, 2.0905e-3),
+    (16, 1.5259e-5),
+    (10, 0.2272),
+])
+def test_session_pvalue_exact(matches, expected):
+    assert session_pvalue(matches, 16) == pytest.approx(expected, rel=3e-4)
+
+
+def test_session_pvalue_extremes():
+    assert session_pvalue(0, 16) == 1.0
+    assert session_pvalue(16, 16) == 2.0 ** -16
+
+
+@pytest.mark.parametrize("matches, n_bits", [(-1, 16), (17, 16), (0, 0)])
+def test_session_pvalue_invalid_counts(matches, n_bits):
+    with pytest.raises(ValueError):
+        session_pvalue(matches, n_bits)
 
 
 def test_pvalue_all_correct():
@@ -17,9 +37,9 @@ def test_pvalue_all_correct():
 
 
 def test_pvalue_half_correct():
-    """8/16 → p_value ≈ 0.5 (chance)."""
+    """8/16 → cola inclusiva exacta ≈ 0.59819, no 0.5."""
     p = binomial_p(8, 16)
-    assert 0.4 < p < 0.6, f"8/16 debe dar p≈0.5, got {p}"
+    assert p == pytest.approx(0.5981903076171875)
 
 
 def test_pvalue_15_of_16():

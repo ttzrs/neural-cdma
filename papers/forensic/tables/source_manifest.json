@@ -1,0 +1,42 @@
+{
+  "sources": [
+    {
+      "path": "/var/home/joss/Datos/Proyectos/neural-cdma/results/watermark_scale_qwen0.5b_fp32.json",
+      "sha256": "7de8b4236dccf3bf55cbea902dad208e773287442b372bdecd9ebabab9d5e74f"
+    },
+    {
+      "path": "/var/home/joss/Datos/Proyectos/neural-cdma/results/watermark_scale_qwen0.5b_bf16.json",
+      "sha256": "73e894d4cca7371bca9c51e2da048211515132c0eae25044fcbcc714659696f3"
+    },
+    {
+      "path": "/var/home/joss/Datos/Proyectos/neural-cdma/results/watermark_scale_qwen1.5b_bf16.json",
+      "sha256": "3ef624aa460a34ca95811325f67f48d6f872de14659fa43e33834e9310ed1fcd"
+    },
+    {
+      "path": "/var/home/joss/Datos/Proyectos/neural-cdma/results/watermark_scale_qwen7b_bf16.json",
+      "sha256": "c1c03cf6a3e356193290f0e70a1088b9a6ae4df15e82994ef37866d03c8cc9cf"
+    }
+  ],
+  "nomark_sources": [
+    {
+      "path": "/var/home/joss/Datos/Proyectos/neural-cdma/results/nomark_paired_qwen0.5b_fp32.json",
+      "sha256": "04f4cda02699b85224a76947ed852f97c51d0e9546e9f8f6d618198f3a2838c8"
+    },
+    {
+      "path": "/var/home/joss/Datos/Proyectos/neural-cdma/results/nomark_paired_qwen0.5b_bf16.json",
+      "sha256": "33a8124f700aacbaa38f2db16053aa850c1284d09153fc159af9c16452d56115"
+    },
+    {
+      "path": "/var/home/joss/Datos/Proyectos/neural-cdma/results/nomark_paired_qwen1.5b_bf16.json",
+      "sha256": "5d20ffd5e7cf125013fee306696e5c959c2d9afb2b2e47457f7ad8ca1be34807"
+    },
+    {
+      "path": "/var/home/joss/Datos/Proyectos/neural-cdma/results/nomark_paired_qwen7b_bf16.json",
+      "sha256": "94352d8e6d5ebd7b90a86d188d249c4dde83b77ba57a1a5c353b4fb3fcd1bd2c"
+    }
+  ],
+  "v1": {
+    "path": "/var/home/joss/Datos/Proyectos/neural-cdma/watermark_provenance_result.json",
+    "sha256": "4c4b507decd2cf2cfbd48d80e0fbeea5727faa7f7226b4b46efd9488b3a00e77"
+  }
+}

@@ -7,6 +7,17 @@ from __future__ import annotations
 import hashlib
 import numpy as np
 import torch
+from scipy import stats as scipy_stats
+
+
+def session_pvalue(matches: int, n_bits: int) -> float:
+    """Cola binomial unilateral P(X≥matches | n_bits, ½) de UNA sesión.
+
+    Se comparan los bits de una generación, nunca deltas de distintos prompts.
+    """
+    if n_bits <= 0 or not 0 <= matches <= n_bits:
+        raise ValueError("Se requiere n_bits > 0 y 0 <= matches <= n_bits.")
+    return float(scipy_stats.binom.sf(matches - 1, n_bits, 0.5))
 
 
 def _key_to_seed(key: str) -> int:

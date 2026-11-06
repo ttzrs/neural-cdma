@@ -1,0 +1,216 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,graphicx,adjustbox}
+\usepackage{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{placeins}
+\usepackage{microtype}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{9pt plus 2pt minus 1pt}{4pt}
+\titlespacing*{\subsection}{0pt}{7pt plus 2pt minus 1pt}{3pt}
+\setlength{\bibsep}{1pt}
+\setlength{\parskip}{3pt}
+\setlength{\parindent}{1em}
+\setlength{\textfloatsep}{10pt}
+\setlength{\floatsep}{8pt}
+\setlength{\intextsep}{8pt}
+\renewcommand{\topfraction}{.95}
+\renewcommand{\bottomfraction}{.95}
+\renewcommand{\textfraction}{.05}
+\renewcommand{\floatpagefraction}{.8}
+\input{tables/macros}
+\title{Engineered CDMA Superposition in Pretrained Transformers:\\Nonlinear Readout Failures, Capacity Limits,\\and Per-Token Surprise}
+\author{Jose Joaqu\'in Vargas Altalaguerri\\Independent Researcher\\\texttt{jvargas8@xtec.cat}}
+\date{November 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+Sign-coded superposition can carry recoverable signals through transformer activations without providing independent computation on those signals. We examine this distinction across five application-level readouts in Qwen2.5-0.5B: normalized unembedding, attention over merged caches, multiplexed MLP probing, multi-behavior steering, and parallel output prediction. None of the tested untrained decoders gives reliable independent recovery. For example, selective CDMA cache merging increases perplexity from \kvPplFull{} to \kvPplMerged{}, whereas matched eviction increases it by only \kvPplDelta{}. An exploratory width-to-symbol-information fit describes trained toy transformers, but causal-language $K_{\rm cap}^{\languageThresholdPct}$ ranges from \languageCapMin{} to \languageCapMax{} across evaluation samples: the largest evaluated $K$ retaining at least \languageThresholdPct\% of the same multistream-adapted checkpoint's $K=1$ accuracy, not intrinsic capacity. Threshold crossings are fragile; accuracy declines monotonically with stream count. Held-out target-token surprise remains descriptively associated with absolute accuracy under superposition; an additional oracle early-exit probe saves only \exitSaving\% of layer evaluations. Modality and binding-code controls do not provide a general remedy. A paired residual-stream watermark remains recoverable at KL divergence \wmKL{}, providing a positive control for transport rather than parallel reasoning. These findings support a task-dependent bottleneck, not an impossibility theorem about superposition or nonlinear networks.
+\end{abstract}
+
+\section{Introduction}
+A compact activation can retain a signal that the rest of a model cannot use as an independently addressable computation. This distinction matters whenever engineered superposition is proposed as a shortcut to batching: recovering a sign from an activation does not establish that the model processed its associated task. Our central empirical claim is that the useful superposition in these experiments lives in a linear sensing channel, or in a decoder explicitly trained for multiplexing. Each tested untrained nonlinear readout fails to turn that channel into reliable independent computation.
+
+We develop the scientific results previously confined to the appendices of \citet{previous}. The contribution is a controlled map of failures, their trained positive controls, and a descriptive association between target-token surprise and absolute accuracy under superposition. We do not introduce multiple-input multiple-output neural computation, already studied by \citet{menet2023}, nor claim that transformers cannot perform naturally composed tasks \citep{xiong2024}. ``Failure at every readout'' refers to the probes and operating points reported here, not every possible detector, model, or nonlinearity.
+
+The working explanation is that task-dependent processing demand, denoted $D_{\rm task}$, matters more than geometric separability alone. The causal-language experiments are consistent with this explanation, but do not identify it uniquely: optimization, adaptation budget, and the objective also differ from the toy setting. The within-sample association is heterogeneous: low-surprise targets have higher absolute accuracy under superposition, but surprise is computed retrospectively from the same predictions and is not a pre-answer routing signal.
+
+\section{The linear/nonlinear channel view}
+Let $h\in\mathbb R^d$ be a residual vector, $C\in\{-1,+1\}^{d\times B}$ a sign-code matrix, and $b\in\{-1,+1\}^B$ a payload. A normalized additive signal is
+\begin{equation}
+ h'=h+\delta,\qquad \delta=\alpha\lVert h\rVert_2\frac{Cb}{\lVert Cb\rVert_2},\qquad
+ \widehat b=\operatorname{sign}\!\left(C^\top(h'-h)\right).
+ \label{eq:watermark}
+\end{equation}
+The implementation scales the columns of $C$ by $d^{-1/2}$, which cancels in the normalized injection. For task multiplexing, the analogous construction binds each stream $x_k$ coordinatewise:
+\begin{equation}
+ z=\sum_{k=1}^K c_k\odot E(x_k),\qquad
+ \widehat x_k=G\!\left(c_k\odot F(z)\right).
+ \label{eq:multiplex}
+\end{equation}
+Here $E$ is an embedding, $F$ the shared computation, and $G$ the readout. A linear map transports additive components exactly, but need not preserve code orthogonality or signal-to-noise ratio. Training can adapt $E,F,G$ to their binding scheme.
+
+For a differentiable nonlinear map $f$, local transport is instead
+\begin{equation}
+ f(h+\delta)-f(h)=J_f(h)\delta+\mathcal O(\lVert\delta\rVert_2^2).
+\end{equation}
+The Jacobian depends on the operating point; a fixed correlator designed for $C$ need not match $J_f(h)C$. Attention additionally changes the routing weights of the mixture. Neither observation proves information destruction. In particular, the unembedding matrix itself is linear: ``logit barrier'' below includes the intervening stack, final RMS normalization, and a restricted detector, not a nonlinear matrix multiplication.
+
+We use $D_{\rm task}$ as a conceptual demand on nonlinear processing. The heuristic $K D_{\rm task}\lesssim C_{\rm nl}(d)$ motivates the experiments; neither quantity is independently measured. The toy relation to $\log_2 V$ is an empirical fit, not a general channel-capacity theorem or a bound on inference speed.
+
+\section{Experimental setup}
+The pretrained-model experiments use Qwen2.5-0.5B. Its recorded width is $d=\realWidth$ and depth is \modelLayers{} layers. The real-language and selective-multiplexing probes adapt this checkpoint on WikiText; other probes test fixed pretrained weights. The toy models use synthetic sequence reversal or masked token reconstruction, with geometry and training settings stored alongside their results. These objectives must not be conflated with autoregressive language modeling.
+
+Accuracy is exact target-token agreement, perplexity is exponentiated mean negative log likelihood, and watermark quality is bit agreement. Output fidelity is $D_{\rm KL}(p_{\rm clean}\Vert p_{\rm marked})$ and greedy-token agreement. Raw, relative, and chance-subtracted capacity criteria differ:
+\begin{align}
+ K_{\rm abs}&=\max\{K:A(K)\geq\tau_{\rm abs}\},\\
+ K_{\rm rel}&=\max\{K:A(K)/A(1)\geq\tau_{\rm rel}\},\\
+ K_{\rm signal}&=\max\{K:[A(K)-q]/[A(1)-q]\geq\tau_{\rm rel}\},
+ \label{eq:capacity}
+\end{align}
+where $q$ is the chance baseline. The toy absolute threshold is \toyThreshold; the relative-threshold definition is encoded in the producer's \texttt{rel80}/\texttt{signal80} fields. Capacity is the largest qualifying \emph{tested} point. At the sweep endpoint it is a lower bound, and it is not meaningful if the single-stream signal is negligible.
+
+All reported measurements are regenerated from frozen JSON. Watermark sample counts are not stored in that JSON; its producer specifies the prompt/position protocol rather than the smaller prompt count in the earlier manuscript. Positions from the same prompt are correlated; aggregate results do not support independent-sample confidence intervals. Clean and marked activations/logits are subtracted exactly, position by position. Divergent continuations also change context, so later differences are not pure local perturbations.
+
+\section{Five nonlinear readout failures}
+\subsection{Normalized unembedding and logits}
+Table~\ref{tab:logits} contains every recorded amplitude and payload size, including the random-bit control. For the smallest payload and amplitude, residual recovery is \wmResidual{} while the transported-code logit detector reaches \wmLogits{}. The latter is weakly above nominal chance, so ``at chance'' would overstate the result without a valid uncertainty estimate. Larger amplitudes strongly perturb output without producing high-fidelity logit recovery.
+
+The detector correlates paired logit differences with $WC$, where $W$ is the unembedding matrix. It omits the exact final-normalization Jacobian and does not fit an inverse or nonlinear decoder. Thus the result rejects this simple detector as a useful readout; it does not show that logits contain no recoverable information. Access to paired logits also exceeds ordinary text-only access.
+\input{tables/logits}
+
+\subsection{Attention softmax and selective KV merging}
+The cache experiment selects low-surprise positions and compares CDMA merging, arithmetic-mean merging, eviction, and a random-position CDMA control at matched storage reduction. It preserves absolute positional indexing. Table~\ref{tab:kv} shows catastrophic CDMA merging, while eviction yields an effective-context multiplier of \kvContext{} at a perplexity increment of \kvPplDelta{}. Arithmetic averaging also substantially outperforms sign-coded merging. This isolates failure of the proposed cache representation rather than failure of all cache compression.
+\input{tables/kv}
+\begin{figure}[!htbp]\centering
+\includegraphics[width=.70\linewidth]{figures/kv_merge.pdf}
+\caption{KV perplexity versus effective context ratio. Only the full-cache baseline and one compressed operating point exist; dotted connectors are not measured curves. The horizontal variable is not CDMA stream count.}\label{fig:kv}
+\end{figure}
+
+\subsection{MLP nonlinearity and ``neurosurgery''}
+A targeted set of \neuronCount{} MLP neurons removes the measured concept response, but also damages general perplexity (Table~\ref{tab:mlp}). Unrelated accuracy is insufficient to certify capability preservation: the narrow control remains intact while fluency deteriorates. Random ablations of the same size are markedly less destructive to perplexity. The multiplexed concept scan also fails to reproduce its serial maps (Table~\ref{tab:mlp_maps}). These are application-level failures, not isolated causal measurements of the activation function.
+\input{tables/mlp}
+\input{tables/mlp_maps}
+
+\subsection{Downstream stack and eigen-steering}
+Orthogonalizing behavior vectors reduces mean off-target coupling by only \crossReduction\%, while reducing mean on-target retention by \retentionLoss\% relative to naive addition. The previous shorthand ``halves retention'' is not numerically exact. Table~\ref{tab:steering} reports every behavior, single-vector baseline, simultaneous condition, and random control. Ratios may be negative or exceed unity, so their mean must not be interpreted as a bounded success probability. Better input geometry does not ensure independent downstream behavioral control.
+\input{tables/steering}
+
+\subsection{Output and parallel multiplexing}
+Table~\ref{tab:multiplex} compares extracted and random directions at every recorded stream count and amplitude. Hidden-state correlation can remain high while the original per-stream output targets do not survive. This is a transport--computation dissociation, not evidence of practical parallel generation. The additional sensing and depth controls are retained in Tables~\ref{tab:viability}--\ref{tab:depth}; the stored depth-break statistic has a pre-injection numerical artifact and is not used as a quantitative depth limit.
+\input{tables/multiplex}
+\FloatBarrier
+
+\section{Exploratory empirical capacity fit}
+\subsection{Repaired toy configurations}
+The repaired synthetic reversal cells yield an exploratory empirical capacity fit
+\begin{equation}
+ K_{\rm cap}\approx a\,\frac{d}{\log_2 V},\qquad a\simeq\referenceCoefficient.
+ \label{eq:fit}
+\end{equation}
+The through-origin least-squares coefficient is \fitCoefficient; \referenceCoefficient{} is its truncated reference. Repaired cells replace matching original configurations, and the fit uses that substituted set, not an independent validation set (Table~\ref{tab:capacity}). This is not a capacity law: validation on configurations and seeds excluded from fitting has not been performed. Complete accuracy grids appear in Table~\ref{tab:toy_curves}.
+\input{tables/capacity}
+\begin{figure}[!htbp]\centering
+\includegraphics[width=.85\linewidth]{figures/capacity.pdf}
+\caption{Left: repaired toy capacity and exploratory fit reference; the Qwen marker spans observed train/held-out threshold crossings on $K\in\{\languageGrid\}$, one checkpoint and one budget, retaining at least \languageThresholdPct\% of its $K=1$ accuracy, not an intrinsic capacity. Right: toy adapter-rank sweep and full-training control. No real-language vocabulary size is recorded in these JSON, so a numerical extrapolation to Qwen is not fabricated.}\label{fig:capacity}
+\end{figure}
+
+\subsection{LoRA, full fine-tuning, and rank}
+The toy rank sweep plateaus at \rankPlateau{} streams against a full-control capacity of \rankFull{} (Table~\ref{tab:rank}). The adaptation-location ablation (Table~\ref{tab:hybrid}) shows that parameterization matters in the toy regime. We do not fit a logarithmic rank relation from this sparse grid.
+\input{tables/rank}
+\input{tables/hybrid}
+
+The original LoRA and full-fine-tuning curves are \emph{in-sample}: evaluation resamples training tokens. Their threshold crossing is not intrinsic capacity: $K_{\rm cap}^{\languageThresholdPct}$ is the largest evaluated $K$ retaining at least \languageThresholdPct\% of the $K=1$ accuracy of the same checkpoint trained with a multistream curriculum, not a separately adapted single-stream model. The full/initial LoRA grid is $K\in\{\languageGrid\}$; the selective LoRA evaluation omits the intermediate full-FT grid point. Each adaptation uses one checkpoint and one training budget.
+\iflanguageHeldout
+Table~\ref{tab:language} now includes independently evaluated WikiText validation tokens. Full fine-tuning gives new-train $K=1$ accuracy \fullTrainAccuracy{} and held-out accuracy \fullHeldoutAccuracy{}, with threshold crossings \fullTrainCap{} and \fullHeldoutCap{}, respectively.
+\ifsurpriseHeldout
+The selective LoRA run similarly crosses at \selectiveTrainCap{} on new train windows and \selectiveHeldoutCap{} held-out. Thus $K_{\rm cap}^{\languageThresholdPct}$ lies between \languageCapMin{} and \languageCapMax{} depending on evaluation sample, rather than establishing a fixed language limit. For example, full-FT train retention at $K=2$ is \fullTrainRetentionTwo\%, below the \languageThresholdPct\% cutoff; held-out retention is \fullHeldoutRetentionTwo\%. The threshold statistic is fragile near that cutoff. The robust pattern is monotonically declining absolute accuracy: $K=2$ retains \retentionTwoMin--\retentionTwoMax\% of $K=1$ accuracy, while $K=8$ retains \retentionEightMin--\retentionEightMax\% across the new train/held-out curves (mean \retentionEightMean\%, approximately half). These aggregate results do not supply uncertainty estimates or exclude optimization/budget effects.
+\fi
+\else
+No held-out full-fine-tuning JSON is available; out-of-sample evidence is pending.
+\fi
+\input{tables/language}
+
+\section{Descriptive association: target-token surprise and absolute accuracy}
+For a target token $y_t$, define surprise under the adapted single-stream model as
+\begin{equation}
+ S_t=-\log p_1(y_t\mid x_{<t}),\qquad
+ R_g(K)=\frac{A_g(K)}{A_g(1)},
+\end{equation}
+where $g$ indexes a fixed surprise tercile. The original numbers are \emph{in-sample}, computed on the training-token pool. Cut points are \surpriseLow{} and \surpriseHigh{} nats; easy-token accuracy at $K=1$ is \easyRecovery{}, versus constant-token-prior accuracy \priorEasy{}. The hard tercile has zero correct targets at $K=1$, so its relative retention is undefined. Table~\ref{tab:surprise} distinguishes these train results from any new split evaluation.
+\ifsurpriseHeldout
+The held-out association is now supported out of sample: easy-token accuracy at $K=1,2,4,8$ is \heldAccuracyEasyOne, \heldAccuracyEasyTwo, \heldAccuracyEasyFour, and \heldAccuracyEasyEight\%; easy-token retention is \heldEasyRetentionOne, \heldEasyRetentionTwo, \heldEasyRetentionFour, and \heldEasyRetentionEight\%. The middle group has low absolute accuracy and the hard group remains at zero even at $K=1$ (Table~\ref{tab:surprise}). Compared with new-train easy-token $K=1$ accuracy \selectiveTrainEasy{}, held-out accuracy is \selectiveHeldoutEasy{}; the qualitative association persists, while the overall threshold crossing changes as discussed above. Both splits use \heldoutBatches{} evaluation batches per stream count. Terciles are fitted independently within each evaluated split, not trained on one and transferred to the other; held-out cut points are \selectiveHeldoutCutLow{} and \selectiveHeldoutCutHigh{} nats. The shared-prediction coupling still applies.
+\else
+No held-out selective-recovery JSON is available; out-of-sample confirmation is pending. Regeneration adds separate train and held-out rows when supplied.
+\fi
+\input{tables/surprise}
+\begin{figure}[!htbp]\centering
+\includegraphics[width=.85\linewidth]{figures/surprise.pdf}
+\caption{New train and held-out absolute accuracy and relative retention by target-token surprise tercile, with split-specific terciles. Relative retention does not order the groups; the middle-tercile ratio has a small denominator and hard-tercile retention is undefined.}\label{fig:surprise}
+\end{figure}
+Surprise and correctness are computed from the same single-stream predictions, so the association is descriptive and baseline enrichment is expected. The result concerns \emph{absolute} target-token accuracy under superposition; relative retention does not order the groups: at $K=\retentionExampleK$, $R_E=\retentionEasyExample$ whereas $R_M=\retentionMiddleExample$, with an unstable small middle-tercile denominator. Target-token surprise requires the answer and is not a predictor available before the response. No selective scheduler or throughput saving is established.
+
+\paragraph{A negative early-exit control.}
+The additional probe applies the final normalization and output head at each layer and finds the earliest layer after which all argmax predictions agree with the final one. Across \exitTokens{} positions, mean exits range from \exitEasy{} to \exitHard{} of \modelLayers{} layers, and the pooled layer-count saving is only \exitSaving\% (Table~\ref{tab:early_exit}). This is an oracle stable-exit statistic, not an executable stopping policy. It excludes head-evaluation overhead and does not measure latency. Its surprise is final-distribution top-prediction surprise, unlike the target-token surprise above. Therefore the result is consistent with limited depth redundancy, but not a direct test of the same surprise partition. Heterogeneity in recoverability does not automatically imply early computation can be skipped.
+\input{tables/early_exit}
+
+\section{Modality and code design are not general levers}
+The masked-reconstruction controls separate task and tokenizer effects from causal-language adaptation. Image capacity depends on vocabulary and setup; it is not a universal modality constant. With the larger recorded vocabulary, k-means and VQ-VAE image tokens have capacity \imageCap{}, whereas text and code remain signal-preserving to the extended sweep endpoint of \maxTrainedStreams{} streams. The latter is a lower bound, not an observed failure threshold. Figure~\ref{fig:modalities} distinguishes censored endpoints; Tables~\ref{tab:vision_kcap}--\ref{tab:code_kcap} retain every measured accuracy.
+\begin{figure}[!htbp]\centering
+\includegraphics[width=.86\linewidth]{figures/modalities.pdf}
+\caption{Signal-relative capacity across modality/tokenizer controls. Hatching denotes a sweep-limited lower bound. These masked toy objectives are not matched to causal language modeling.}\label{fig:modalities}
+\end{figure}
+Hadamard, random-sign, and highly correlated binding codes all preserve reconstruction through the tested endpoint under training (Table~\ref{tab:coded_vocab_kcap}). This refutes code orthogonality as a sufficient practical lever in this trained setting, not its relevance in every model. It is consistent with learned embeddings compensating for the code, but does not prove that mechanism. The results alone also do not identify image-token rank, correlation, or redundancy as the cause of its lower capacity.
+\input{tables/vision_kcap}
+\input{tables/vision_kcap_hardvocab}
+\input{tables/vqvae_kcap}
+\input{tables/code_kcap}
+\input{tables/coded_vocab_kcap}
+
+\section{Positive control: the residual-stream watermark survives}
+At $B=\wmBits$ and $\alpha=\wmAlpha$, paired residual recovery is \wmResidual{}, with KL \wmKL{} and greedy-token agreement \wmAgreement{} (Table~\ref{tab:logits}). Figure~\ref{fig:watermark} contrasts this with the weak logit detector. The small but nonzero divergence should not be called exact invariance. This positive control supports recoverable low-amplitude activation transport, not a robust text watermark or independent task computation. The companion \emph{Paper A: Activation-side session tagging for LLM audit logs} \citep{companion}, by the same author in the same repository, treats the audit-log system; it has no assigned DOI. Its scale study (Qwen2.5-0.5B/1.5B/7B, 128 sessions of 128 greedy tokens) confirms the linear-channel picture in both directions: the tag is recovered only by paired replay against the logged residual, blind decoding with a static calibration is at chance, a tag added directly at the read layer decodes perfectly (the residual response to a small perturbation is close to identity, so the mark proves transport, not computation), and the same $\alpha$ that leaves next-token agreement at \wmAgreement{} here changes most 128-token continuations on the larger models. The present exact paired-subtraction experiment must not be equated with a deployable single-log verifier.
+\begin{figure}[!htbp]\centering
+\includegraphics[width=.66\linewidth]{figures/watermark.pdf}
+\caption{Residual, logit, and random-control bit accuracy for the smallest recorded payload, over all injection amplitudes.}\label{fig:watermark}
+\end{figure}
+Trained MLP and transformer controls (Tables~\ref{tab:trained_mlp} and \ref{tab:trained_transformer}) demonstrate that nonlinear networks can learn multiplexing. They constrain the failure claim to untrained engineered readouts and their objectives.
+
+\section{Related work and honest novelty}
+\citet{elhage2022} study learned feature superposition, not imposed codes. \citet{menet2023} train multiple-input multiple-output networks for superposed computation. Natural in-context task composition \citep{xiong2024} differs from sign-bound activation addition. ParScale \citep{chen2025} aggregates separate learned parallel passes, not one unmodified residual mixture.
+
+\citet{borobia2026} study leverage dispersion and near-floor geometry in trained overcomplete codes, not a theorem about the nonlinear application failures tested here.
+
+EntropyCache \citep{cheong2026} uses decoded-token entropy for diffusion-model cache refresh, not causal-model multiplexing. Text watermarking \citep{kirchenbauer2023} changes token selection, unlike paired activation sensing. BitNet \citep{wang2023} and Mamba \citep{gu2023} change weight computation or sequence architecture, without establishing free capacity for CDMA streams. Our contribution is the combined negative evidence and its surprise-stratified qualification, not a new multiplexing mechanism or universal information-theoretic law.
+
+\section{Limitations}
+All real-LLM results concern one small checkpoint, without cross-family or larger-scale replication. The original adaptation and surprise accuracies measure within-corpus recovery; the new validation-token evaluations provide out-of-sample evidence for these trained runs, not independent-seed or cross-model replication. Sample sizes are small and correlated, seeds are not comprehensively replicated, and rounded aggregate JSON does not support reliable uncertainty estimates. Behavioral scores are narrow. The logit probe tests a restricted correlator, not optimal or text-only decoding, and the application probes do not causally isolate individual nonlinear operators.
+
+The exploratory capacity fit comes from toy reversal with replacement training configurations, without validation on unseen configurations or seeds. Masked modality tasks, causal language modeling, and MLP sign recovery use different objectives and thresholds. Endpoint capacities are censored. Matching in-sample language threshold crossings under the tested budgets do not establish an intrinsic $D_{\rm task}$ limit. Surprise is partly tied to baseline correctness, and the early-exit statistic is retrospective. No scheduler, wall-clock acceleration, or general impossibility result follows from these experiments.
+
+\section*{Changes from version 1}
+We correct arXiv:2605.01192 and its earlier floor-theorem attribution, omit the unsupported real-language overprediction, call the toy relation exploratory, and report original in-sample and new held-out evidence separately, including the evaluation-dependent threshold crossing. The readout failures are not impossibility results.
+
+\section*{Reproducibility}
+Code and frozen results: \url{https://github.com/ttzrs/neural-cdma}. The previous manuscript is DOI \href{https://doi.org/10.5281/zenodo.20570543}{10.5281/zenodo.20570543}, not a DOI for this paper. From \texttt{papers/channel/}, run \texttt{bash build.sh}; no GPU or weights are required. \texttt{tables/provenance.json} records source hashes and numeric-macro derivations.
+
+{\footnotesize\raggedright
+Readouts: \texttt{watermark\_provenance.py}, \texttt{kv\_selective.py}, \texttt{cdma\_neurosurgery.py}, \texttt{eigen\_steering.py}, \texttt{multithread.py}.\par
+Capacity: \texttt{capacity\_law.py}, \texttt{capacity\_fix.py}, \texttt{rank\_sweep.py}, \texttt{hybrid\_multiplex.py}, \texttt{validate\_llm*.py}, \texttt{validate\_llm\_full\_heldout.py}.\par
+Surprise: \texttt{prototype\_selective.py}, \texttt{prototype\_selective\_heldout.py}, \texttt{early\_exit\_surprise.py}.\par
+Modality: \texttt{vision\_kcap*.py}, \texttt{vqvae\_kcap.py}, \texttt{code\_kcap.py}, \texttt{coded\_vocab\_kcap.py}.\par
+Controls: \texttt{train\_superposition.py}, \texttt{train\_transformer\_superposition.py}, \texttt{viability.py}, \texttt{profile\_depth.py}.\par}
+Rebuilding regenerates presentation, not experiments.
+
+\FloatBarrier
+\appendix
+\section{Complete supporting controls}
+These tables retain toy accuracy grids, trained sign-accuracy controls, sensing results, and depth summaries. Raw regression errors and depth arrays remain in the hashed JSON; the break statistic is not used as a usable-depth claim.
+\input{tables/toy_curves}
+\input{tables/trained_transformer}
+\input{tables/trained_mlp}
+\input{tables/viability}
+\input{tables/depth}
+\FloatBarrier
+\bibliographystyle{plainnat}
+{\footnotesize\bibliography{refs}}
+\end{document}

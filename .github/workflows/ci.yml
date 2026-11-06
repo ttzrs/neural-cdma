@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, papers-v2]
   pull_request:
     branches: [main]
 
@@ -22,4 +22,4 @@ jobs:
           pip install -e ./watermark_pkg
       - name: Run CPU tests (codec + p-value math; GPU model tests skipped)
         run: |
-          pytest watermark_pkg/tests/test_codec.py watermark_pkg/tests/test_verify_pvalue.py -q
+          pytest watermark_pkg/tests/test_codec.py watermark_pkg/tests/test_verify_pvalue.py watermark_pkg/tests/test_watermark_modes.py -q

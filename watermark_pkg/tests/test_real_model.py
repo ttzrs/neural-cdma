@@ -97,10 +97,11 @@ def test_cuda_available():
     assert torch.cuda.is_available()
 
 
-def test_correct_key_provenance(model_tok, wm):
-    """Clave correcta: provenance_confirmed True, p_value < 1e-4."""
+@pytest.mark.parametrize("prompt", PROMPTS)
+def test_correct_key_provenance(model_tok, wm, prompt):
+    """Clave correcta: cada sesión se verifica sin promediar entre prompts."""
     model, tok, dev = model_tok
-    result = wm.verify(model, PROMPTS, tok, PAYLOAD, device=dev)
+    result = wm.verify(model, [prompt], tok, PAYLOAD, device=dev)
     print(f"\nCorrect key result: {result}")
     assert result["provenance_confirmed"], (
         f"Proveniencia debería confirmarse: bit_acc={result['bit_accuracy']:.3f}, "
@@ -111,68 +112,34 @@ def test_correct_key_provenance(model_tok, wm):
     assert result["bit_accuracy"] >= 0.75, f"bit_acc baja: {result['bit_accuracy']:.3f}"
 
 
-def test_wrong_key_not_confirmed(model_tok, wm, wm_wrong):
-    """Clave incorrecta: provenance_confirmed False, p_value alto.
-
-    Protocolo correcto: el contenido fue inyectado con CORRECT_KEY.
-    El verificador con WRONG_KEY intenta decodificar el delta del correcto
-    usando sus propios códigos (incorrectos) → proyección es noise → chance.
-
-    Esto requiere:
-      1. Capturar delta_correct = h_wm(correct) - h_clean
-      2. Decodificar delta_correct con wrong_key's codes → bit_acc ≈ 0.5
-    """
-    from cdma_watermark.codec import make_codes, decode
-    from scipy import stats as scipy_stats
+@pytest.mark.parametrize("prompt", PROMPTS)
+def test_wrong_key_not_confirmed(model_tok, wm, wm_wrong, prompt):
+    """Clave incorrecta: decodifica una sesión marcada con la clave propietaria."""
+    from cdma_watermark.codec import make_codes, decode, session_pvalue
 
     model, tok, dev = model_tok
     d = model.config.hidden_size
-
-    # Códigos del propietario legítimo y del atacante
     codes_correct = make_codes(KEY, 16, d, dev)
     codes_wrong = make_codes(WRONG_KEY, 16, d, dev)
     bits_pm1 = torch.tensor([1.0 if b else -1.0 for b in PAYLOAD], device=dev)
 
-    # Recoger delta inyectado por correct_key
-    h_cap = {}
-    def read_hook(mod, inp, out):
-        h = out[0] if isinstance(out, tuple) else out
-        h_cap["h"] = h[:, -1, :].detach().float().clone()
+    h_clean = wm._run_and_collect(model, [prompt], tok, dev, with_embed=False)
+    h_wm = wm._run_and_collect(model, [prompt], tok, dev,
+                               with_embed=True, payload=PAYLOAD)
+    delta = h_wm - h_clean
 
-    rh = model.model.layers[20].register_forward_hook(read_hook)
-    deltas_correct = []
-    for prompt in PROMPTS:
-        toks = tok(prompt, return_tensors="pt").input_ids.to(dev)
-        # clean
-        with torch.no_grad():
-            model(input_ids=toks)
-        h_clean = h_cap["h"][0].clone()
-        # watermarked con correct key
-        with wm.embed(model, PAYLOAD):
-            with torch.no_grad():
-                model(input_ids=toks)
-        h_wm = h_cap["h"][0].clone()
-        deltas_correct.append((h_wm - h_clean))
-    rh.remove()
-
-    # Promedio delta across prompts
-    mean_delta = torch.stack(deltas_correct).mean(dim=0)  # (d,)
-
-    # Decodificar con codes INCORRECTOS — señal debería ser noise
-    bits_wrong, _ = decode(mean_delta.unsqueeze(0), codes_wrong)
+    bits_wrong, _ = decode(delta, codes_wrong)
     matches_wrong = int((bits_pm1 == bits_wrong).sum().item())
-    p_wrong = float(scipy_stats.binom.sf(matches_wrong - 1, 16, 0.5))
-
+    p_wrong = session_pvalue(matches_wrong, 16)
     print(f"\nWrong key: matches={matches_wrong}/16, p={p_wrong:.4f}")
     assert p_wrong > 0.05, (
         f"Clave incorrecta debería dar p>0.05, got {p_wrong:.4f} "
         f"(matches={matches_wrong}/16)"
     )
 
-    # Para contraste: decodificar con codes CORRECTOS — señal clara
-    bits_correct, _ = decode(mean_delta.unsqueeze(0), codes_correct)
+    bits_correct, _ = decode(delta, codes_correct)
     matches_correct = int((bits_pm1 == bits_correct).sum().item())
-    p_correct = float(scipy_stats.binom.sf(matches_correct - 1, 16, 0.5))
+    p_correct = session_pvalue(matches_correct, 16)
     print(f"Correct key: matches={matches_correct}/16, p={p_correct:.6f}")
     assert p_correct < 0.05, f"Clave correcta debería dar p<0.05, got {p_correct:.4f}"
 

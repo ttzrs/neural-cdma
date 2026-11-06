@@ -1,11 +1,11 @@
-"""Genera PAPER.pdf desde PAPER.md (markdown → HTML con estilo académico → weasyprint).
+"""Genera PAPER.pdf desde archive/v1/PAPER.md (markdown → HTML con estilo académico → weasyprint).
 Uso: python3 build_pdf.py [entrada.md] [salida.pdf]"""
 import sys
 import markdown
 from weasyprint import HTML
 
-src = sys.argv[1] if len(sys.argv) > 1 else "PAPER.md"
-out = sys.argv[2] if len(sys.argv) > 2 else "PAPER.pdf"
+src = sys.argv[1] if len(sys.argv) > 1 else "archive/v1/PAPER.md"
+out = sys.argv[2] if len(sys.argv) > 2 else "archive/v1/PAPER.pdf"
 
 md = open(src, encoding="utf-8").read()
 # El primer '# ' es el título; el resto, cuerpo.

@@ -4,6 +4,21 @@ import pytest
 from cdma_watermark.codec import make_codes, encode_delta, decode, _key_to_seed
 
 
+def test_blind_decoding_with_static_calibration():
+    """Un sesgo fijo dominante oculta la marca si no se resta su calibración."""
+    codes = make_codes("blind-key", 16, 128)
+    bits = torch.tensor([1.0, -1.0] * 8)
+    bias = -20.0 * (codes @ bits)
+    clean = bias.repeat(64, 1)
+    calibration = (clean @ codes).mean(dim=0)
+    h_wm = bias.repeat(24, 1) + encode_delta(bits, codes, 1.0)
+
+    calibrated, _ = decode(h_wm, codes, calibration=calibration)
+    uncalibrated, _ = decode(h_wm, codes)
+    assert torch.equal(calibrated, bits)
+    assert torch.equal(uncalibrated, -bits)
+
+
 def test_key_to_seed_deterministic():
     s1 = _key_to_seed("my-key")
     s2 = _key_to_seed("my-key")

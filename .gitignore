@@ -10,3 +10,8 @@ dist/
 HANDOFF.md
 PAPER_DRAFT.md
 .env
+papers/*/main.txt
+papers/*/*.aux
+papers/*/*.bbl
+papers/*/*.blg
+papers/*/*.out

@@ -1,0 +1,410 @@
+{
+  "sources": {
+    "kv_selective_result.json": "e5956af93fe1ac431761bab6411cc1b413d0d739f8001c58914dcc1baee1f5b7",
+    "cdma_neurosurgery_result.json": "9b085a4571b98089358e576f90b796042d861786e8011557654dfe445712190b",
+    "eigen_steering_result.json": "121086596dfecf996fcd05fcdd1b0afd43d88653b0ab9c1b1e760e81dda36e83",
+    "multithread_result.json": "0e13c8a3bb1ca95369baccf033d712c31d37cf93cae27dc19ae84fe6eba84a69",
+    "watermark_provenance_result.json": "4c4b507decd2cf2cfbd48d80e0fbeea5727faa7f7226b4b46efd9488b3a00e77",
+    "capacity_law_result.json": "49976a09bcdd1a862aecb344377a60ebb9c4360cf48aed4d243ad2619fbfa387",
+    "capacity_fix_result.json": "0c61c7c1aed9e20a9aa8ed1c29ca5aa7c1bb10fd8a1e65ddb381c43da52c8ec5",
+    "rank_sweep_result.json": "8f8fb74655b9b804706282131ff54d2a5d8c6a8e529d68da92b410965738a50d",
+    "validate_llm_result.json": "38da8959399b684beca65d4e4da0b477a9453d929e5089cbea00c7f8faf86547",
+    "validate_llm_full_result.json": "cf99ac446e2b084f3cc62f18ca4cd50662eba3e23e47b6272ed78171c4c239dc",
+    "train_superposition_result.json": "2a96a83f9400c5f899d6e47ccb9d54fb752c411066c1a0c15a020cf582281303",
+    "train_transformer_superposition_result.json": "304d6362e5fd4bb776be7e9583e4ba4755dfc06295c48094c67099fa6a4f0478",
+    "hybrid_result.json": "1f58cbb329014d9cf190afe0c0cac35939ce83154a65c36c7c6e0bdc55ada416",
+    "profile_depth_result.json": "cd0f9b073039b310c0575c8b979e693ba8aad44746599aada25ec6a1eb46c001",
+    "viability_result.json": "20a3751a5a7ff72d48f6900f1d2da2b8e38e17a663fc72d7663c62ac866beb8c",
+    "prototype_selective_result.json": "437a8568f3c894affef635fe49ed8852bfeb705ae03ab7e2d55f768b659bf922",
+    "early_exit_surprise_result.json": "e7c2da8db0a6018289be42019b31d2ce228f715692acb0dd874700e7deef6b10",
+    "vision_kcap_result.json": "cfcb641e853ed64763c637520ae4a80b4d2f5ff13c83242a6b2bbdaae412f89e",
+    "vision_kcap_hardvocab_result.json": "14723d2c49d5d8496f381e22d5db7b4320c446a11417b922e0e91d6e1ade99e7",
+    "vqvae_kcap_result.json": "d19d06ccaf16ecfdb988e6a0b3ecbcdcf655b370f2b2bab03baae456251f7985",
+    "code_kcap_result.json": "b9e7023dd168844f8740fdfba9c3fc49376d5dea70871b65b36745cc7a64c545",
+    "coded_vocab_kcap_result.json": "aa6524a44e260584264988bca318b62c886e1d30e8436b49af0da2865abd3d09",
+    "validate_llm_full_heldout_result.json": "e1c7d5b01ed304b37489a100b8a7b28f060c31720c10cecf1c5ecc5290e33dbb",
+    "prototype_selective_heldout_result.json": "de859deb6c08e98b9453a90016293606ce24786f62fec829ca4cfda210645d53"
+  },
+  "macros": {
+    "fitCoefficient": {
+      "value": 0.37706043956043955,
+      "formatted": "0.377",
+      "source": "through-origin least squares on repaired capacity_law + capacity_fix cells"
+    },
+    "referenceCoefficient": {
+      "value": 0.37,
+      "formatted": "0.37",
+      "source": "lower hundredth of fitCoefficient (historical approximate reference)"
+    },
+    "toyThreshold": {
+      "value": 0.9,
+      "formatted": "0.90",
+      "source": "capacity_law/meta/acc_thresh"
+    },
+    "languageCap": {
+      "value": 2,
+      "formatted": "2",
+      "source": "validate_llm/k_cap_rel80"
+    },
+    "realWidth": {
+      "value": 896,
+      "formatted": "896",
+      "source": "validate_llm/d"
+    },
+    "modelLayers": {
+      "value": 24,
+      "formatted": "24",
+      "source": "early_exit_surprise/n_layers"
+    },
+    "kvPplFull": {
+      "value": 8.572200722361604,
+      "formatted": "8.57",
+      "source": "kv_selective/methods/FULL/perplexity"
+    },
+    "kvPplMerged": {
+      "value": 172903.6669109756,
+      "formatted": "172904",
+      "source": "kv_selective/methods/CDMA-MERGE-EASY/perplexity"
+    },
+    "kvPplDelta": {
+      "value": 0.2855649957844104,
+      "formatted": "0.29",
+      "source": "kv_selective: EVICT-EASY PPL minus FULL PPL"
+    },
+    "kvContext": {
+      "value": 1.499267935578331,
+      "formatted": "1.50",
+      "source": "kv_selective/methods/EVICT-EASY/effective_context_x"
+    },
+    "neuronCount": {
+      "value": 116,
+      "formatted": "116",
+      "source": "cdma_neurosurgery/ablation_sweep/first/k_neurons"
+    },
+    "crossReduction": {
+      "value": 2.1520749255500844,
+      "formatted": "2.15",
+      "source": "eigen_steering/summary/cross_coupling_reduction_pct"
+    },
+    "retentionLoss": {
+      "value": 37.939448371540564,
+      "formatted": "37.9",
+      "source": "eigen_steering: 100*(1-ortho_retention/naive_retention)"
+    },
+    "easyRecovery": {
+      "value": 0.597,
+      "formatted": "0.597",
+      "source": "prototype_selective/by_K/1/acc_easy"
+    },
+    "priorEasy": {
+      "value": 0.124,
+      "formatted": "0.124",
+      "source": "prototype_selective/prior_only/acc_easy"
+    },
+    "surpriseLow": {
+      "value": 3.13,
+      "formatted": "3.13",
+      "source": "prototype_selective/surprise_terciles/0"
+    },
+    "surpriseHigh": {
+      "value": 7.57,
+      "formatted": "7.57",
+      "source": "prototype_selective/surprise_terciles/1"
+    },
+    "exitSaving": {
+      "value": 6.1,
+      "formatted": "6.1",
+      "source": "early_exit_surprise/TODOS/compute_saved_pct"
+    },
+    "exitEasy": {
+      "value": 21.08,
+      "formatted": "21.08",
+      "source": "early_exit_surprise/FÁCIL/mean_exit_layer"
+    },
+    "exitHard": {
+      "value": 23.68,
+      "formatted": "23.68",
+      "source": "early_exit_surprise/DIFÍCIL/mean_exit_layer"
+    },
+    "exitTokens": {
+      "value": 1024,
+      "formatted": "1024",
+      "source": "early_exit_surprise/n_tokens"
+    },
+    "wmBits": {
+      "value": 16,
+      "formatted": "16",
+      "source": "watermark_provenance/first payload key"
+    },
+    "wmAlpha": {
+      "value": 0.01,
+      "formatted": "0.01",
+      "source": "watermark_provenance/first amplitude key"
+    },
+    "wmResidual": {
+      "value": 0.9194,
+      "formatted": "0.9194",
+      "source": "watermark_provenance/16/0.01/bitacc_residual"
+    },
+    "wmLogits": {
+      "value": 0.5684,
+      "formatted": "0.5684",
+      "source": "watermark_provenance/16/0.01/bitacc_logits"
+    },
+    "wmKL": {
+      "value": 0.00035,
+      "formatted": "0.00035",
+      "source": "watermark_provenance/16/0.01/kl"
+    },
+    "wmAgreement": {
+      "value": 1.0,
+      "formatted": "1.0000",
+      "source": "watermark_provenance/16/0.01/token_agreement"
+    },
+    "maxTrainedStreams": {
+      "value": 32,
+      "formatted": "32",
+      "source": "code_kcap/text_bpe/trained/max key"
+    },
+    "imageCap": {
+      "value": 4,
+      "formatted": "4",
+      "source": "vqvae_kcap/image_vqvae/k_cap_signal80"
+    },
+    "rankPlateau": {
+      "value": 6,
+      "formatted": "6",
+      "source": "rank_sweep/points/last/k_cap"
+    },
+    "rankFull": {
+      "value": 14,
+      "formatted": "14",
+      "source": "rank_sweep/full/k_cap"
+    },
+    "languageThresholdPct": {
+      "value": 80,
+      "formatted": "80",
+      "source": "validate_llm/k_cap_rel80: percentage encoded in field name"
+    },
+    "retentionEasyExample": {
+      "value": 0.698,
+      "formatted": "0.698",
+      "source": "prototype_selective/retention_vs_K1/4/easy"
+    },
+    "retentionMiddleExample": {
+      "value": 2.154,
+      "formatted": "2.154",
+      "source": "prototype_selective/retention_vs_K1/4/mid"
+    },
+    "retentionExampleK": {
+      "value": 4,
+      "formatted": "4",
+      "source": "prototype_selective/retention_vs_K1/4: stream-count key"
+    },
+    "fullTrainCap": {
+      "value": 1,
+      "formatted": "1",
+      "source": "validate_llm_full_heldout/train/k_cap_rel80"
+    },
+    "fullTrainAccuracy": {
+      "value": 0.246,
+      "formatted": "0.246",
+      "source": "validate_llm_full_heldout/train/trained/1"
+    },
+    "fullHeldoutCap": {
+      "value": 2,
+      "formatted": "2",
+      "source": "validate_llm_full_heldout/heldout/k_cap_rel80"
+    },
+    "fullHeldoutAccuracy": {
+      "value": 0.207,
+      "formatted": "0.207",
+      "source": "validate_llm_full_heldout/heldout/trained/1"
+    },
+    "selectiveTrainEasy": {
+      "value": 0.686,
+      "formatted": "0.686",
+      "source": "prototype_selective_heldout/train/by_K/1/acc_easy"
+    },
+    "selectiveTrainCutLow": {
+      "value": 2.81,
+      "formatted": "2.81",
+      "source": "prototype_selective_heldout/train/surprise_terciles/0"
+    },
+    "selectiveTrainCutHigh": {
+      "value": 7.17,
+      "formatted": "7.17",
+      "source": "prototype_selective_heldout/train/surprise_terciles/1"
+    },
+    "selectiveHeldoutEasy": {
+      "value": 0.618,
+      "formatted": "0.618",
+      "source": "prototype_selective_heldout/heldout/by_K/1/acc_easy"
+    },
+    "selectiveHeldoutCutLow": {
+      "value": 3.1,
+      "formatted": "3.10",
+      "source": "prototype_selective_heldout/heldout/surprise_terciles/0"
+    },
+    "selectiveHeldoutCutHigh": {
+      "value": 7.79,
+      "formatted": "7.79",
+      "source": "prototype_selective_heldout/heldout/surprise_terciles/1"
+    },
+    "languageCapMin": {
+      "value": 1,
+      "formatted": "1",
+      "source": "min capacity over original and split language curves"
+    },
+    "languageCapMax": {
+      "value": 2,
+      "formatted": "2",
+      "source": "max capacity over original and split language curves"
+    },
+    "retentionTwoMin": {
+      "value": 76.82926829268293,
+      "formatted": "76.8",
+      "source": "min 100*A(2)/A(1) over new split language curves"
+    },
+    "retentionTwoMax": {
+      "value": 86.95652173913044,
+      "formatted": "87.0",
+      "source": "max 100*A(2)/A(1) over new split language curves"
+    },
+    "retentionTwoMean": {
+      "value": 81.24786594766965,
+      "formatted": "81.2",
+      "source": "unweighted mean 100*A(2)/A(1) over new split language curves"
+    },
+    "retentionEightMin": {
+      "value": 39.57446808510639,
+      "formatted": "39.6",
+      "source": "min 100*A(8)/A(1) over new split language curves"
+    },
+    "retentionEightMax": {
+      "value": 51.207729468599034,
+      "formatted": "51.2",
+      "source": "max 100*A(8)/A(1) over new split language curves"
+    },
+    "retentionEightMean": {
+      "value": 44.96326135126027,
+      "formatted": "45.0",
+      "source": "unweighted mean 100*A(8)/A(1) over new split language curves"
+    },
+    "fullTrainRetentionTwo": {
+      "value": 76.82926829268293,
+      "formatted": "76.8",
+      "source": "full split: 100*A(2)/A(1)"
+    },
+    "fullHeldoutRetentionTwo": {
+      "value": 86.95652173913044,
+      "formatted": "87.0",
+      "source": "full split: 100*A(2)/A(1)"
+    },
+    "selectiveTrainCap": {
+      "value": 1,
+      "formatted": "1",
+      "source": "prototype_selective_heldout/train/k_cap_rel80"
+    },
+    "selectiveTrainRetentionTwo": {
+      "value": 77.87234042553192,
+      "formatted": "77.9",
+      "source": "selective split: 100*A(2)/A(1)"
+    },
+    "selectiveHeldoutCap": {
+      "value": 2,
+      "formatted": "2",
+      "source": "prototype_selective_heldout/heldout/k_cap_rel80"
+    },
+    "selectiveHeldoutRetentionTwo": {
+      "value": 83.33333333333334,
+      "formatted": "83.3",
+      "source": "selective split: 100*A(2)/A(1)"
+    },
+    "heldAccuracyEasyOne": {
+      "value": 61.8,
+      "formatted": "61.8",
+      "source": "prototype_selective_heldout/heldout/by_K/1/acc_easy * 100"
+    },
+    "heldAccuracyMiddleOne": {
+      "value": 1.0,
+      "formatted": "1.0",
+      "source": "prototype_selective_heldout/heldout/by_K/1/acc_mid * 100"
+    },
+    "heldAccuracyHardOne": {
+      "value": 0.0,
+      "formatted": "0.0",
+      "source": "prototype_selective_heldout/heldout/by_K/1/acc_hard * 100"
+    },
+    "heldEasyRetentionOne": {
+      "value": 100.0,
+      "formatted": "100.0",
+      "source": "prototype_selective_heldout/heldout/retention_vs_K1/1/easy * 100"
+    },
+    "heldAccuracyEasyTwo": {
+      "value": 50.0,
+      "formatted": "50.0",
+      "source": "prototype_selective_heldout/heldout/by_K/2/acc_easy * 100"
+    },
+    "heldAccuracyMiddleTwo": {
+      "value": 2.6,
+      "formatted": "2.6",
+      "source": "prototype_selective_heldout/heldout/by_K/2/acc_mid * 100"
+    },
+    "heldAccuracyHardTwo": {
+      "value": 0.0,
+      "formatted": "0.0",
+      "source": "prototype_selective_heldout/heldout/by_K/2/acc_hard * 100"
+    },
+    "heldEasyRetentionTwo": {
+      "value": 80.9,
+      "formatted": "80.9",
+      "source": "prototype_selective_heldout/heldout/retention_vs_K1/2/easy * 100"
+    },
+    "heldAccuracyEasyFour": {
+      "value": 40.6,
+      "formatted": "40.6",
+      "source": "prototype_selective_heldout/heldout/by_K/4/acc_easy * 100"
+    },
+    "heldAccuracyMiddleFour": {
+      "value": 3.3000000000000003,
+      "formatted": "3.3",
+      "source": "prototype_selective_heldout/heldout/by_K/4/acc_mid * 100"
+    },
+    "heldAccuracyHardFour": {
+      "value": 0.0,
+      "formatted": "0.0",
+      "source": "prototype_selective_heldout/heldout/by_K/4/acc_hard * 100"
+    },
+    "heldEasyRetentionFour": {
+      "value": 65.7,
+      "formatted": "65.7",
+      "source": "prototype_selective_heldout/heldout/retention_vs_K1/4/easy * 100"
+    },
+    "heldAccuracyEasyEight": {
+      "value": 25.1,
+      "formatted": "25.1",
+      "source": "prototype_selective_heldout/heldout/by_K/8/acc_easy * 100"
+    },
+    "heldAccuracyMiddleEight": {
+      "value": 3.0,
+      "formatted": "3.0",
+      "source": "prototype_selective_heldout/heldout/by_K/8/acc_mid * 100"
+    },
+    "heldAccuracyHardEight": {
+      "value": 0.0,
+      "formatted": "0.0",
+      "source": "prototype_selective_heldout/heldout/by_K/8/acc_hard * 100"
+    },
+    "heldEasyRetentionEight": {
+      "value": 40.6,
+      "formatted": "40.6",
+      "source": "prototype_selective_heldout/heldout/retention_vs_K1/8/easy * 100"
+    },
+    "heldoutBatches": {
+      "value": 32,
+      "formatted": "32",
+      "source": "prototype_selective_heldout/n_eval_batches"
+    }
+  }
+}

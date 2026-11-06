@@ -75,6 +75,18 @@ def cmd_embed(args: argparse.Namespace) -> None:
         print(f"[output] {text}\n")
 
 
+def _calibration(wm, model, tok, dev, args):
+    """Calibra blind una sola vez con textos disjuntos de las sesiones."""
+    if args.mode == "paired":
+        return None
+    if not args.calibration_prompts:
+        sys.exit("Error: --mode blind requiere --calibration-prompts de un corpus limpio disjunto")
+    prompts = args.prompts if args.prompts else _DEFAULT_PROMPTS
+    if set(prompts) & set(args.calibration_prompts):
+        sys.exit("Error: los prompts de calibración deben ser disjuntos de las sesiones")
+    return wm.calibrate(model, args.calibration_prompts, tok, device=dev)
+
+
 def cmd_verify(args: argparse.Namespace) -> None:
     """Verifica proveniencia: compara payload esperado con el recuperado."""
     from .watermark import Watermark
@@ -91,10 +103,13 @@ def cmd_verify(args: argparse.Namespace) -> None:
         read_layer=read_layer,
     )
     prompts = args.prompts if args.prompts else _DEFAULT_PROMPTS
-    result = wm.verify(model, prompts, tok, payload_bits, device=dev)
-    print(json.dumps(result, indent=2))
-    verdict = "PROVENANCE CONFIRMED" if result["provenance_confirmed"] else "NOT CONFIRMED"
-    print(f"\n{verdict}  (p={result['p_value']:.2e}, bit_acc={result['bit_accuracy']:.3f})")
+    calibration = _calibration(wm, model, tok, dev, args)
+    for prompt in prompts:
+        result = wm.verify(model, [prompt], tok, payload_bits, device=dev,
+                           mode=args.mode, calibration=calibration)
+        print(json.dumps(result, indent=2))
+        verdict = "PROVENANCE CONFIRMED" if result["provenance_confirmed"] else "NOT CONFIRMED"
+        print(f"\n{verdict}  (p={result['p_value']:.2e}, bit_acc={result['bit_accuracy']:.3f})")
 
 
 def cmd_extract(args: argparse.Namespace) -> None:
@@ -112,10 +127,13 @@ def cmd_extract(args: argparse.Namespace) -> None:
         read_layer=read_layer,
     )
     prompts = args.prompts if args.prompts else _DEFAULT_PROMPTS
-    result = wm.extract(model, prompts, tok, device=dev)
-    print(f"Recovered bits: {result['bits']}")
-    conf = result["confidence"].tolist()
-    print(f"Confidence:     {[round(c, 3) for c in conf]}")
+    calibration = _calibration(wm, model, tok, dev, args)
+    for prompt in prompts:
+        result = wm.extract(model, [prompt], tok, device=dev,
+                            mode=args.mode, calibration=calibration)
+        print(f"Recovered bits: {result['bits']}")
+        conf = result["confidence"].tolist()
+        print(f"Confidence:     {[round(c, 3) for c in conf]}")
 
 
 def cmd_audit(args: argparse.Namespace) -> None:
@@ -124,8 +142,7 @@ def cmd_audit(args: argparse.Namespace) -> None:
     Owner confirma (p diminuto); atacante sin el secreto → chance (no puede leer)."""
     import torch
     from .watermark import Watermark
-    from .codec import make_codes, decode
-    from scipy import stats
+    from .codec import make_codes, decode, session_pvalue
 
     payload_bits = _parse_payload(args.payload, args.n_bits)
     model, tok, dev = _load_model_tok(args.model)
@@ -137,40 +154,26 @@ def cmd_audit(args: argparse.Namespace) -> None:
     d = model.config.hidden_size
     bits_pm1 = torch.tensor([1.0 if b else -1.0 for b in payload_bits], device=dev)
 
-    # Captura el delta REALMENTE inyectado por la key del propietario (protocolo 2-partes).
-    h_cap: dict = {}
-    def hook(m, i, o):
-        h = o[0] if isinstance(o, tuple) else o
-        h_cap["h"] = h[:, -1, :].detach().float().clone()
-    rh = model.model.layers[read_layer].register_forward_hook(hook)
-    deltas = []
-    for p in prompts:
-        toks = tok(p, return_tensors="pt").input_ids.to(dev)
-        with torch.no_grad():
-            model(input_ids=toks)
-        h_clean = h_cap["h"][0].clone()
-        with wm.embed(model, payload_bits):
-            with torch.no_grad():
-                model(input_ids=toks)
-        deltas.append(h_cap["h"][0].clone() - h_clean)
-    rh.remove()
-    mean_delta = torch.stack(deltas).mean(dim=0).unsqueeze(0)
-
-    def decode_p(key: str) -> tuple[int, float]:
-        bits, _ = decode(mean_delta, make_codes(key, args.n_bits, d, dev))
+    def decode_p(delta: torch.Tensor, key: str) -> tuple[int, float]:
+        bits, _ = decode(delta, make_codes(key, args.n_bits, d, dev))
         m = int((bits_pm1 == bits).sum().item())
-        return m, float(stats.binom.sf(m - 1, args.n_bits, 0.5))
+        return m, session_pvalue(m, args.n_bits)
 
     thr = args.p_threshold
-    m_o, p_o = decode_p(args.key)
-    print(f"\nProveniencia desacoplada (inyectado con key del propietario):")
-    print(f"  OWNER  '{args.key}': {m_o}/{args.n_bits} bits  p={p_o:.2e}  → "
-          f"{'PROVENANCE CONFIRMED' if p_o < thr else 'no confirmado'}")
     attackers = args.attacker_key or ["attacker-A", "attacker-B", "attacker-C"]
-    for ak in attackers:
-        m_a, p_a = decode_p(ak)
-        print(f"  ATTACK '{ak}': {m_a}/{args.n_bits} bits  p={p_a:.2e}  → "
-              f"{'¡FUGA!' if p_a < thr else 'chance (no puede leer sin el secreto)'}")
+    for session, prompt in enumerate(prompts, 1):
+        h_clean = wm._run_and_collect(model, [prompt], tok, dev, with_embed=False)
+        h_wm = wm._run_and_collect(model, [prompt], tok, dev,
+                                   with_embed=True, payload=payload_bits)
+        delta = h_wm - h_clean
+        m_o, p_o = decode_p(delta, args.key)
+        print(f"\nProveniencia desacoplada (sesión {session}, key del propietario):")
+        print(f"  OWNER  '{args.key}': {m_o}/{args.n_bits} bits  p={p_o:.2e}  → "
+              f"{'PROVENANCE CONFIRMED' if p_o < thr else 'no confirmado'}")
+        for ak in attackers:
+            m_a, p_a = decode_p(delta, ak)
+            print(f"  ATTACK '{ak}': {m_a}/{args.n_bits} bits  p={p_a:.2e}  → "
+                  f"{'¡FUGA!' if p_a < thr else 'chance (no puede leer sin el secreto)'}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -202,6 +205,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_extract = sub.add_parser("extract", help="Extract payload (unknown)")
     p_extract.add_argument("--prompts", nargs="+", default=None)
     p_extract.set_defaults(func=cmd_extract)
+
+    for sp in (p_verify, p_extract):
+        sp.add_argument("--mode", choices=("paired", "blind"), default="paired",
+                        help="Protocolo por sesión; sin log, reinyecta como demo")
+        sp.add_argument("--calibration-prompts", nargs="+", default=None,
+                        help="Corpus limpio disjunto para calibrar --mode blind")
 
     p_audit = sub.add_parser("audit", help="Honest decoupled provenance demo (owner vs attacker keys)")
     p_audit.add_argument("--payload", required=True, help="Owner payload: integer ID or '1 0 1 ...' bits")
